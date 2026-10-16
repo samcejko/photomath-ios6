@@ -2,4 +2,8 @@
 
 @interface PMScannerViewController : UIViewController
 
+- (void)openHistory:(id)sender;
+- (void)openSettings:(id)sender;
+- (void)openKeyboard:(id)sender;
+
 @end

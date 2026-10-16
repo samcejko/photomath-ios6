@@ -8,5 +8,6 @@
 - (void)startScanningAnimation;
 - (void)stopScanningAnimation;
 - (void)showFocusIndicatorAtPoint:(CGPoint)point;
+- (void)setDefaultCropRect:(CGRect)rect;
 
 @end

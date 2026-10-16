@@ -127,7 +127,16 @@
     if (h < 40.0f) h = 40.0f;
 
     if (step.latex.length) {
-        h += 38.0f; // approx display math height
+        static MTMathUILabel *measuringLabel = nil;
+        static dispatch_once_t once;
+        dispatch_once(&once, ^{
+            measuringLabel = [[MTMathUILabel alloc] init];
+            measuringLabel.labelMode = kMTMathUILabelModeDisplay;
+            measuringLabel.fontSize = 18.0f;
+        });
+        measuringLabel.latex = step.latex;
+        CGSize sz = [measuringLabel sizeThatFits:CGSizeMake(cardW - 24.0f, CGFLOAT_MAX)];
+        h += MAX(36.0f, sz.height) + 8.0f;
     }
 
     if (step.explanation.length) {

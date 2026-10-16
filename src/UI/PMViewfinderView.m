@@ -9,6 +9,7 @@
 @property (nonatomic, strong) UIPanGestureRecognizer *resizePan;
 @property (nonatomic) CGPoint initialTouch;
 @property (nonatomic) CGRect initialRect;
+@property (nonatomic) BOOL userDidManuallyResize;
 @end
 
 @implementation PMViewfinderView
@@ -163,11 +164,25 @@
         CGFloat newY = MAX(40.0f, self.initialRect.origin.y + dy * 0.3f);
 
         self.currentCropRect = CGRectMake(newX, newY, newW, newH);
+        self.userDidManuallyResize = YES;
         [self setNeedsDisplay];
 
         CGRect topPos = CGRectMake(self.currentCropRect.origin.x + 4, self.currentCropRect.origin.y + 4, self.currentCropRect.size.width - 8, 2.0f);
         self.laserLine.frame = topPos;
     } else if (pan.state == UIGestureRecognizerStateEnded || pan.state == UIGestureRecognizerStateCancelled) {
+        [self startScanningAnimation];
+    }
+}
+
+- (void)setDefaultCropRect:(CGRect)rect
+{
+    if (self.userDidManuallyResize) return;
+    if (CGRectEqualToRect(self.currentCropRect, rect)) return;
+    self.currentCropRect = rect;
+    CGRect topPos = CGRectMake(self.currentCropRect.origin.x + 4, self.currentCropRect.origin.y + 4, self.currentCropRect.size.width - 8, 2.0f);
+    self.laserLine.frame = topPos;
+    [self setNeedsDisplay];
+    if (!self.laserLine.hidden) {
         [self startScanningAnimation];
     }
 }

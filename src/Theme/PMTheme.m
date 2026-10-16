@@ -1,5 +1,6 @@
 #import "PMTheme.h"
 #import "PMSettings.h"
+#import "PMModern.h"
 #import "PMCommon.h"
 
 @implementation PMTheme
@@ -451,13 +452,18 @@
 
 - (void)applyToNavigationBar:(UINavigationBar *)bar
 {
-    [bar setBackgroundImage:[self navigationBarBackgroundImage] forBarMetrics:UIBarMetricsDefault];
+    if (!bar) return;
+    UIImage *bg = [self navigationBarBackgroundImage];
+    [bar setBackgroundImage:bg forBarMetrics:UIBarMetricsDefault];
     bar.tintColor = [UIColor colorWithRed:0.75f green:0.18f blue:0.18f alpha:1.0f];
-    bar.titleTextAttributes = @{
+    NSDictionary *attrs = @{
         UITextAttributeTextColor: [UIColor whiteColor],
         UITextAttributeTextShadowColor: [UIColor colorWithWhite:0.0f alpha:0.45f],
         UITextAttributeTextShadowOffset: [NSValue valueWithUIOffset:UIOffsetMake(0, -1)]
     };
+    bar.titleTextAttributes = attrs;
+
+    PMModernApplyNavigationBarBackground(bar, bg, attrs, nil, nil, nil);
 }
 
 - (void)applyToTableView:(UITableView *)tableView

@@ -9,6 +9,7 @@
 #import "PMSettings.h"
 #import "PMHistoryStore.h"
 #import "PMTheme.h"
+#import "PMModern.h"
 #import "PMUtils.h"
 #import "PMCommon.h"
 #import <AVFoundation/AVFoundation.h>
@@ -23,6 +24,7 @@
 
 @property (nonatomic, strong) PMViewfinderView *viewfinderView;
 @property (nonatomic, strong) UIView *topBar;
+@property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UIView *bottomBar;
 @property (nonatomic, strong) UIButton *shutterButton;
 @property (nonatomic, strong) UIButton *torchButton;
@@ -77,6 +79,71 @@
     if (self.captureSession && self.captureSession.isRunning) {
         [self.captureSession stopRunning];
     }
+}
+
+- (void)viewDidLayoutSubviews
+{
+    [super viewDidLayoutSubviews];
+
+    CGRect bounds = self.view.bounds;
+    CGFloat w = bounds.size.width;
+    CGFloat h = bounds.size.height;
+    if (w <= 0 || h <= 0) return;
+
+    if (self.previewLayer) {
+        self.previewLayer.frame = bounds;
+    }
+    self.viewfinderView.frame = bounds;
+
+    UIEdgeInsets insets = PMSafeAreaInsets(self.view);
+
+    // Top Bar layout: extends under status bar / notch
+    CGFloat statusH = [UIApplication sharedApplication].statusBarHidden ? 0.0f : [UIApplication sharedApplication].statusBarFrame.size.height;
+    if (statusH <= 0 || statusH > 50.0f) statusH = 20.0f;
+    CGFloat topInset = MAX(insets.top, statusH);
+    CGFloat topBarH = topInset + 44.0f;
+    self.topBar.frame = CGRectMake(0, 0, w, topBarH);
+
+    CGFloat buttonY = topInset + (44.0f - 34.0f) / 2.0f;
+    self.torchButton.frame = CGRectMake(10, buttonY, 42, 34);
+    self.settingsButton.frame = CGRectMake(w - 48, buttonY, 40, 34);
+    self.historyButton.frame = CGRectMake(w - 95, buttonY, 40, 34);
+
+    CGFloat titleX = (self.videoDevice && self.videoDevice.hasTorch) ? 58.0f : 16.0f;
+    CGFloat titleW = MAX(80.0f, (w - 105.0f) - titleX);
+    self.titleLabel.frame = CGRectMake(titleX, buttonY, titleW, 34);
+
+    // Bottom Bar layout: extends under home indicator on modern iPhones
+    CGFloat botInset = insets.bottom;
+    CGFloat botBarContentH = 88.0f;
+    CGFloat botBarH = botBarContentH + botInset;
+    self.bottomBar.frame = CGRectMake(0, h - botBarH, w, botBarH);
+
+    // Center shutter button
+    CGFloat shutterSize = 68.0f;
+    self.shutterButton.frame = CGRectMake((w - shutterSize) / 2.0f, 10.0f, shutterSize, shutterSize);
+    self.shutterButton.layer.cornerRadius = shutterSize / 2.0f;
+
+    // Gallery button on left, Keyboard button on right with balanced spacing
+    CGFloat sideBtnSize = 48.0f;
+    CGFloat sideBtnY = 20.0f;
+    CGFloat leftCenter = ((w - shutterSize) / 2.0f) / 2.0f;
+    CGFloat rightCenter = w - leftCenter;
+    self.galleryButton.frame = CGRectMake(floorf(leftCenter - sideBtnSize / 2.0f), sideBtnY, sideBtnSize, sideBtnSize);
+    self.keyboardButton.frame = CGRectMake(floorf(rightCenter - sideBtnSize / 2.0f), sideBtnY, sideBtnSize, sideBtnSize);
+
+    // Center HUD
+    self.hudView.center = CGPointMake(w / 2.0f, h / 2.0f);
+
+    // Adjust crop rect in viewfinder between top and bottom bars
+    CGFloat availTop = topBarH;
+    CGFloat availBot = h - botBarH;
+    CGFloat availH = availBot - availTop;
+    CGFloat defaultCropW = MIN(w - 32.0f, 320.0f);
+    CGFloat defaultCropH = MIN(130.0f, MAX(90.0f, availH * 0.40f));
+    CGFloat cropX = floorf((w - defaultCropW) / 2.0f);
+    CGFloat cropY = floorf(availTop + (availH - defaultCropH) / 2.0f - 10.0f);
+    [self.viewfinderView setDefaultCropRect:CGRectMake(cropX, cropY, defaultCropW, defaultCropH)];
 }
 
 #pragma mark - Camera Setup
@@ -162,12 +229,12 @@
     [self.topBar addSubview:self.torchButton];
 
     // App title
-    UILabel *titleLbl = [[UILabel alloc] initWithFrame:CGRectMake(58, 10, w - 165, 34)];
-    titleLbl.text = L(@"ShutterCalc");
-    titleLbl.textColor = [UIColor whiteColor];
-    titleLbl.font = [UIFont boldSystemFontOfSize:18.0f];
-    titleLbl.backgroundColor = [UIColor clearColor];
-    [self.topBar addSubview:titleLbl];
+    self.titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(58, 10, w - 165, 34)];
+    self.titleLabel.text = L(@"ShutterCalc");
+    self.titleLabel.textColor = [UIColor whiteColor];
+    self.titleLabel.font = [UIFont boldSystemFontOfSize:18.0f];
+    self.titleLabel.backgroundColor = [UIColor clearColor];
+    [self.topBar addSubview:self.titleLabel];
 
     // History button
     self.historyButton = [UIButton buttonWithType:UIButtonTypeCustom];
