@@ -455,15 +455,38 @@
     if (!bar) return;
     UIImage *bg = [self navigationBarBackgroundImage];
     [bar setBackgroundImage:bg forBarMetrics:UIBarMetricsDefault];
-    bar.tintColor = [UIColor colorWithRed:0.75f green:0.18f blue:0.18f alpha:1.0f];
-    NSDictionary *attrs = @{
-        UITextAttributeTextColor: [UIColor whiteColor],
-        UITextAttributeTextShadowColor: [UIColor colorWithWhite:0.0f alpha:0.45f],
-        UITextAttributeTextShadowOffset: [NSValue valueWithUIOffset:UIOffsetMake(0, -1)]
-    };
+    bar.barStyle = UIBarStyleBlack;
+    bar.tintColor = [UIColor whiteColor];
+
+    NSMutableDictionary *attrs = [NSMutableDictionary dictionary];
+    attrs[UITextAttributeTextColor] = [UIColor whiteColor];
+    attrs[UITextAttributeTextShadowColor] = [UIColor colorWithWhite:0.0f alpha:0.45f];
+    attrs[UITextAttributeTextShadowOffset] = [NSValue valueWithUIOffset:UIOffsetMake(0, -1)];
+
+    NSMutableDictionary *btnAttrs = [NSMutableDictionary dictionary];
+    btnAttrs[UITextAttributeTextColor] = [UIColor whiteColor];
+    btnAttrs[UITextAttributeTextShadowColor] = [UIColor colorWithWhite:0.0f alpha:0.45f];
+    btnAttrs[UITextAttributeTextShadowOffset] = [NSValue valueWithUIOffset:UIOffsetMake(0, -1)];
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
+    if (PMModernIOS()) {
+        NSShadow *sh = [[NSShadow alloc] init];
+        sh.shadowColor = [UIColor colorWithWhite:0.0f alpha:0.5f];
+        sh.shadowOffset = CGSizeMake(0, -1);
+
+        attrs[NSForegroundColorAttributeName] = [UIColor whiteColor];
+        attrs[NSShadowAttributeName] = sh;
+        attrs[NSFontAttributeName] = [UIFont boldSystemFontOfSize:18.0f];
+
+        btnAttrs[NSForegroundColorAttributeName] = [UIColor whiteColor];
+        btnAttrs[NSShadowAttributeName] = sh;
+        btnAttrs[NSFontAttributeName] = [UIFont boldSystemFontOfSize:13.0f];
+    }
+#endif
+
     bar.titleTextAttributes = attrs;
 
-    PMModernApplyNavigationBarBackground(bar, bg, attrs, nil, nil, nil);
+    PMModernApplyNavigationBarBackground(bar, bg, attrs, nil, nil, btnAttrs);
 }
 
 - (void)applyToTableView:(UITableView *)tableView
