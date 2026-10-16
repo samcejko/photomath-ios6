@@ -71,4 +71,11 @@
 "Valid OpenRouter API key saved!" = "Valid OpenRouter API key saved!";
 "Active key. Credits: $%.2f" = "Active key. Credits: $%.2f";
 "Dynamic fallback automatically tries the next available vision model in the OpenRouter catalog if a model fails or hits rate limits, strictly avoiding content-safety models." = "Dynamic fallback automatically tries the next available vision model in the OpenRouter catalog if a model fails or hits rate limits, strictly avoiding content-safety models.";
+"Only Free Models" = "Only Free Models";
+"Import from AI Chat" = "Import from AI Chat";
+"Found" = "Found";
+"Key imported from AI Chat and verified!" = "Key imported from AI Chat and verified!";
+"Key imported from AI Chat. Verifying..." = "Key imported from AI Chat. Verifying...";
+"No API key found in AI Chat." = "No API key found in AI Chat.";
+"OpenRouter key detected in AI Chat app. Tap 'Import from AI Chat' to use it." = "OpenRouter key detected in AI Chat app. Tap 'Import from AI Chat' to use it.";
 "OK" = "OK";

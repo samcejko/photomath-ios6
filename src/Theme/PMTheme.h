@@ -23,11 +23,19 @@
 - (UIFont *)smallFont;
 - (UIFont *)keyboardFont;
 
-// Procedural Artwork
+// Procedural Artwork & Drawn Vector Icons (clean iOS 6 style, no emojis)
 - (UIImage *)navigationBarBackgroundImage;
 - (UIImage *)glossyButtonImageWithColor:(UIColor *)baseColor highlighted:(BOOL)highlighted;
+- (UIImage *)darkBarButtonImageHighlighted:(BOOL)highlighted;
 - (UIImage *)reticleCornerImageWithColor:(UIColor *)color stroke:(CGFloat)stroke length:(CGFloat)len;
 - (UIImage *)circleBadgeImageWithNumber:(NSInteger)num size:(CGFloat)size;
+
+- (UIImage *)torchIconActive:(BOOL)active;
+- (UIImage *)historyIcon;
+- (UIImage *)settingsIcon;
+- (UIImage *)galleryIcon;
+- (UIImage *)keyboardIcon;
+- (UIImage *)shutterIcon;
 
 // UIKit Styling
 - (void)applyToNavigationBar:(UINavigationBar *)bar;

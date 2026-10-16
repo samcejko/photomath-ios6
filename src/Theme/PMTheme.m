@@ -229,6 +229,224 @@
     return img;
 }
 
+- (UIImage *)darkBarButtonImageHighlighted:(BOOL)highlighted
+{
+    CGSize size = CGSizeMake(24.0f, 32.0f);
+    UIGraphicsBeginImageContextWithOptions(size, NO, 0.0f);
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+
+    CGRect rect = CGRectMake(0.5f, 0.5f, 23.0f, 31.0f);
+    UIBezierPath *path = [UIBezierPath bezierPathWithRoundedRect:rect cornerRadius:5.0f];
+    CGContextSaveGState(ctx);
+    [path addClip];
+
+    CGFloat r = highlighted ? 0.35f : 0.20f;
+    CGFloat alphaTop = highlighted ? 0.45f : 0.28f;
+    CGFloat alphaBot = highlighted ? 0.20f : 0.08f;
+
+    CGFloat comp[8] = {
+        r, r, r, alphaTop,
+        r * 0.7f, r * 0.7f, r * 0.7f, alphaBot
+    };
+    CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
+    CGGradientRef grad = CGGradientCreateWithColorComponents(cs, comp, NULL, 2);
+    CGContextDrawLinearGradient(ctx, grad, CGPointMake(0, 0), CGPointMake(0, size.height), 0);
+    CGGradientRelease(grad);
+    CGColorSpaceRelease(cs);
+
+    CGContextRestoreGState(ctx);
+
+    [[UIColor colorWithWhite:1.0f alpha:highlighted ? 0.45f : 0.25f] setStroke];
+    path.lineWidth = 1.0f;
+    [path stroke];
+
+    UIImage *raw = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return [raw resizableImageWithCapInsets:UIEdgeInsetsMake(10, 10, 10, 10) resizingMode:UIImageResizingModeStretch];
+}
+
+- (UIImage *)torchIconActive:(BOOL)active
+{
+    CGSize size = CGSizeMake(22.0f, 22.0f);
+    UIGraphicsBeginImageContextWithOptions(size, NO, 0.0f);
+
+    UIBezierPath *p = [UIBezierPath bezierPath];
+    [p moveToPoint:CGPointMake(12.5f, 2.0f)];
+    [p addLineToPoint:CGPointMake(5.0f, 11.5f)];
+    [p addLineToPoint:CGPointMake(10.5f, 11.5f)];
+    [p addLineToPoint:CGPointMake(8.0f, 20.0f)];
+    [p addLineToPoint:CGPointMake(17.0f, 9.5f)];
+    [p addLineToPoint:CGPointMake(11.5f, 9.5f)];
+    [p closePath];
+    p.lineJoinStyle = kCGLineJoinRound;
+    p.lineCapStyle = kCGLineCapRound;
+
+    if (active) {
+        [[UIColor colorWithRed:1.0f green:0.84f blue:0.0f alpha:1.0f] setFill];
+        [p fill];
+        [[UIColor whiteColor] setStroke];
+        p.lineWidth = 1.2f;
+        [p stroke];
+    } else {
+        [[UIColor colorWithWhite:1.0f alpha:0.25f] setFill];
+        [p fill];
+        [[UIColor whiteColor] setStroke];
+        p.lineWidth = 1.8f;
+        [p stroke];
+    }
+
+    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return img;
+}
+
+- (UIImage *)historyIcon
+{
+    CGSize size = CGSizeMake(22.0f, 22.0f);
+    UIGraphicsBeginImageContextWithOptions(size, NO, 0.0f);
+
+    UIBezierPath *circle = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(2.0f, 2.0f, 18.0f, 18.0f)];
+    circle.lineWidth = 1.8f;
+    [[UIColor whiteColor] setStroke];
+    [circle stroke];
+
+    UIBezierPath *hands = [UIBezierPath bezierPath];
+    [hands moveToPoint:CGPointMake(11.0f, 6.0f)];
+    [hands addLineToPoint:CGPointMake(11.0f, 11.0f)];
+    [hands addLineToPoint:CGPointMake(15.5f, 11.0f)];
+    hands.lineWidth = 2.0f;
+    hands.lineCapStyle = kCGLineCapRound;
+    hands.lineJoinStyle = kCGLineJoinRound;
+    [[UIColor whiteColor] setStroke];
+    [hands stroke];
+
+    UIBezierPath *dot = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(9.5f, 9.5f, 3.0f, 3.0f)];
+    [[UIColor whiteColor] setFill];
+    [dot fill];
+
+    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return img;
+}
+
+- (UIImage *)settingsIcon
+{
+    CGSize size = CGSizeMake(22.0f, 22.0f);
+    UIGraphicsBeginImageContextWithOptions(size, NO, 0.0f);
+
+    UIBezierPath *gear = [UIBezierPath bezierPath];
+    CGFloat cx = 11.0f, cy = 11.0f;
+    CGFloat rIn = 6.8f, rOut = 9.8f;
+    int teeth = 8;
+    for (int i = 0; i < teeth; i++) {
+        CGFloat a0 = (i * 2.0f * M_PI) / teeth;
+        CGFloat a1 = a0 + (M_PI / (teeth * 2.5f));
+        CGFloat a2 = a1 + (M_PI / (teeth * 2.5f));
+        CGFloat a3 = a0 + (2.0f * M_PI / teeth);
+        CGPoint p0 = CGPointMake(cx + rIn * cosf(a0), cy + rIn * sinf(a0));
+        CGPoint p1 = CGPointMake(cx + rOut * cosf(a1), cy + rOut * sinf(a1));
+        CGPoint p2 = CGPointMake(cx + rOut * cosf(a2), cy + rOut * sinf(a2));
+        CGPoint p3 = CGPointMake(cx + rIn * cosf(a3), cy + rIn * sinf(a3));
+        if (i == 0) [gear moveToPoint:p0];
+        else [gear addLineToPoint:p0];
+        [gear addLineToPoint:p1];
+        [gear addLineToPoint:p2];
+        [gear addLineToPoint:p3];
+    }
+    [gear closePath];
+
+    UIBezierPath *hole = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(cx - 3.5f, cy - 3.5f, 7.0f, 7.0f)];
+    [gear appendPath:hole];
+    gear.usesEvenOddFillRule = YES;
+
+    [[UIColor whiteColor] setFill];
+    [gear fill];
+
+    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return img;
+}
+
+- (UIImage *)galleryIcon
+{
+    CGSize size = CGSizeMake(24.0f, 24.0f);
+    UIGraphicsBeginImageContextWithOptions(size, NO, 0.0f);
+
+    CGRect cardRect = CGRectMake(2.0f, 3.5f, 20.0f, 17.0f);
+    UIBezierPath *card = [UIBezierPath bezierPathWithRoundedRect:cardRect cornerRadius:3.0f];
+    card.lineWidth = 1.8f;
+    [[UIColor whiteColor] setStroke];
+    [card stroke];
+
+    UIBezierPath *sun = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(5.5f, 6.5f, 4.0f, 4.0f)];
+    [[UIColor whiteColor] setFill];
+    [sun fill];
+
+    UIBezierPath *peaks = [UIBezierPath bezierPath];
+    [peaks moveToPoint:CGPointMake(3.5f, 18.0f)];
+    [peaks addLineToPoint:CGPointMake(9.5f, 11.5f)];
+    [peaks addLineToPoint:CGPointMake(14.5f, 17.0f)];
+    [peaks addLineToPoint:CGPointMake(17.5f, 13.5f)];
+    [peaks addLineToPoint:CGPointMake(20.5f, 17.5f)];
+    peaks.lineWidth = 1.6f;
+    peaks.lineCapStyle = kCGLineCapRound;
+    peaks.lineJoinStyle = kCGLineJoinRound;
+    [[UIColor whiteColor] setStroke];
+    [peaks stroke];
+
+    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return img;
+}
+
+- (UIImage *)keyboardIcon
+{
+    CGSize size = CGSizeMake(24.0f, 24.0f);
+    UIGraphicsBeginImageContextWithOptions(size, NO, 0.0f);
+
+    CGRect frame = CGRectMake(2.0f, 4.0f, 20.0f, 16.0f);
+    UIBezierPath *kb = [UIBezierPath bezierPathWithRoundedRect:frame cornerRadius:3.0f];
+    kb.lineWidth = 1.8f;
+    [[UIColor whiteColor] setStroke];
+    [kb stroke];
+
+    UIBezierPath *keys = [UIBezierPath bezierPath];
+    for (int i = 0; i < 4; i++) {
+        CGFloat x = 5.5f + i * 3.8f;
+        [keys appendPath:[UIBezierPath bezierPathWithRoundedRect:CGRectMake(x, 7.0f, 2.2f, 2.0f) cornerRadius:0.5f]];
+        [keys appendPath:[UIBezierPath bezierPathWithRoundedRect:CGRectMake(x, 11.0f, 2.2f, 2.0f) cornerRadius:0.5f]];
+    }
+    [[UIColor whiteColor] setFill];
+    [keys fill];
+
+    UIBezierPath *space = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(6.5f, 15.0f, 11.0f, 1.8f) cornerRadius:0.8f];
+    [space fill];
+
+    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return img;
+}
+
+- (UIImage *)shutterIcon
+{
+    CGSize size = CGSizeMake(34.0f, 34.0f);
+    UIGraphicsBeginImageContextWithOptions(size, NO, 0.0f);
+
+    UIBezierPath *xPath = [UIBezierPath bezierPath];
+    [xPath moveToPoint:CGPointMake(10.0f, 10.0f)];
+    [xPath addLineToPoint:CGPointMake(24.0f, 24.0f)];
+    [xPath moveToPoint:CGPointMake(24.0f, 10.0f)];
+    [xPath addLineToPoint:CGPointMake(10.0f, 24.0f)];
+    xPath.lineWidth = 3.6f;
+    xPath.lineCapStyle = kCGLineCapRound;
+    [[UIColor whiteColor] setStroke];
+    [xPath stroke];
+
+    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return img;
+}
+
 #pragma mark - UIKit Styling
 
 - (void)applyToNavigationBar:(UINavigationBar *)bar

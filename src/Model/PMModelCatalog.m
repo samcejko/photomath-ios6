@@ -170,6 +170,11 @@ static const NSTimeInterval kStaleInterval = 12 * 60 * 60; // 12 hours
         return pa < pb ? NSOrderedAscending : NSOrderedDescending;
     }];
 
+    // If user selected "Only Free Models", strictly return free vision models
+    if ([PMSettings shared].freeOnly) {
+        return freeVision;
+    }
+
     NSMutableArray *combined = [NSMutableArray arrayWithCapacity:freeVision.count + paidVision.count];
     [combined addObjectsFromArray:freeVision];
     [combined addObjectsFromArray:paidVision];
@@ -181,14 +186,17 @@ static const NSTimeInterval kStaleInterval = 12 * 60 * 60; // 12 hours
     NSArray *allVision = [self validVisionModels];
     if (!allVision.count) return @[];
 
+    BOOL freeOnly = [PMSettings shared].freeOnly;
     NSMutableArray *chain = [NSMutableArray array];
     PMModelInfo *first = nil;
 
     if (preferredId.length) {
         PMModelInfo *match = [self modelWithId:preferredId];
         if (match && match.supportsImages && !match.isContentSafetyModel) {
-            first = match;
-            [chain addObject:first];
+            if (!freeOnly || [match isFree]) {
+                first = match;
+                [chain addObject:first];
+            }
         }
     }
 

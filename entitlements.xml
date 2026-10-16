@@ -7,6 +7,7 @@
 	<key>keychain-access-groups</key>
 	<array>
 		<string>com.samcejko.shuttercalc</string>
+		<string>com.samcejko.aichat</string>
 	</array>
 	<key>get-task-allow</key>
 	<true/>

@@ -63,11 +63,17 @@
     [self.verifyButton addTarget:self action:@selector(verifyTapped:) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:self.verifyButton];
 
+    UIButton *importBtn = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+    importBtn.frame = CGRectMake(20, 170, w - 40, 38);
+    [importBtn setTitle:L(@"Import from AI Chat") forState:UIControlStateNormal];
+    [importBtn addTarget:self action:@selector(importAIChatTapped:) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:importBtn];
+
     self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
-    self.spinner.center = CGPointMake(w / 2.0f, 190);
+    self.spinner.center = CGPointMake(w / 2.0f, 225);
     [self.view addSubview:self.spinner];
 
-    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 210, w - 40, 60)];
+    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 245, w - 40, 60)];
     self.statusLabel.font = [UIFont systemFontOfSize:13.0f];
     self.statusLabel.textAlignment = NSTextAlignmentCenter;
     self.statusLabel.numberOfLines = 2;
@@ -76,6 +82,23 @@
 
     if ([PMSettings shared].hasAPIKey) {
         [self checkCurrentKey];
+    } else if ([PMSettings hasAIChatAPIKey]) {
+        self.statusLabel.textColor = [UIColor darkGrayColor];
+        self.statusLabel.text = L(@"OpenRouter key detected in AI Chat app. Tap 'Import from AI Chat' to use it.");
+    }
+}
+
+- (void)importAIChatTapped:(id)sender
+{
+    NSString *chatKey = [PMSettings availableAIChatAPIKey];
+    if (chatKey.length) {
+        self.keyField.text = chatKey;
+        self.statusLabel.textColor = [UIColor darkGrayColor];
+        self.statusLabel.text = L(@"Key imported from AI Chat. Verifying...");
+        [self verifyTapped:nil];
+    } else {
+        self.statusLabel.textColor = [UIColor redColor];
+        self.statusLabel.text = L(@"No API key found in AI Chat.");
     }
 }
 

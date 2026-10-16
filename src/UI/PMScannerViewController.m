@@ -152,15 +152,17 @@
 
     // Torch button (if supported)
     self.torchButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    self.torchButton.frame = CGRectMake(10, 10, 40, 34);
-    [self.torchButton setTitle:@"⚡" forState:UIControlStateNormal];
-    self.torchButton.titleLabel.font = [UIFont boldSystemFontOfSize:18.0f];
+    self.torchButton.frame = CGRectMake(10, 10, 42, 34);
+    [self.torchButton setImage:[[PMTheme shared] torchIconActive:NO] forState:UIControlStateNormal];
+    [self.torchButton setImage:[[PMTheme shared] torchIconActive:YES] forState:UIControlStateSelected];
+    [self.torchButton setBackgroundImage:[[PMTheme shared] darkBarButtonImageHighlighted:NO] forState:UIControlStateNormal];
+    [self.torchButton setBackgroundImage:[[PMTheme shared] darkBarButtonImageHighlighted:YES] forState:UIControlStateHighlighted];
     [self.torchButton addTarget:self action:@selector(toggleTorch:) forControlEvents:UIControlEventTouchUpInside];
     self.torchButton.hidden = !self.videoDevice.hasTorch;
     [self.topBar addSubview:self.torchButton];
 
     // App title
-    UILabel *titleLbl = [[UILabel alloc] initWithFrame:CGRectMake(55, 10, w - 160, 34)];
+    UILabel *titleLbl = [[UILabel alloc] initWithFrame:CGRectMake(58, 10, w - 165, 34)];
     titleLbl.text = L(@"ShutterCalc");
     titleLbl.textColor = [UIColor whiteColor];
     titleLbl.font = [UIFont boldSystemFontOfSize:18.0f];
@@ -170,16 +172,18 @@
     // History button
     self.historyButton = [UIButton buttonWithType:UIButtonTypeCustom];
     self.historyButton.frame = CGRectMake(w - 95, 10, 40, 34);
-    [self.historyButton setTitle:@"🕒" forState:UIControlStateNormal];
-    self.historyButton.titleLabel.font = [UIFont systemFontOfSize:18.0f];
+    [self.historyButton setImage:[[PMTheme shared] historyIcon] forState:UIControlStateNormal];
+    [self.historyButton setBackgroundImage:[[PMTheme shared] darkBarButtonImageHighlighted:NO] forState:UIControlStateNormal];
+    [self.historyButton setBackgroundImage:[[PMTheme shared] darkBarButtonImageHighlighted:YES] forState:UIControlStateHighlighted];
     [self.historyButton addTarget:self action:@selector(openHistory:) forControlEvents:UIControlEventTouchUpInside];
     [self.topBar addSubview:self.historyButton];
 
     // Settings button
     self.settingsButton = [UIButton buttonWithType:UIButtonTypeCustom];
     self.settingsButton.frame = CGRectMake(w - 48, 10, 40, 34);
-    [self.settingsButton setTitle:@"⚙" forState:UIControlStateNormal];
-    self.settingsButton.titleLabel.font = [UIFont systemFontOfSize:20.0f];
+    [self.settingsButton setImage:[[PMTheme shared] settingsIcon] forState:UIControlStateNormal];
+    [self.settingsButton setBackgroundImage:[[PMTheme shared] darkBarButtonImageHighlighted:NO] forState:UIControlStateNormal];
+    [self.settingsButton setBackgroundImage:[[PMTheme shared] darkBarButtonImageHighlighted:YES] forState:UIControlStateHighlighted];
     [self.settingsButton addTarget:self action:@selector(openSettings:) forControlEvents:UIControlEventTouchUpInside];
     [self.topBar addSubview:self.settingsButton];
 
@@ -191,29 +195,29 @@
     // Gallery button
     self.galleryButton = [UIButton buttonWithType:UIButtonTypeCustom];
     self.galleryButton.frame = CGRectMake(25, 20, 50, 50);
-    [self.galleryButton setTitle:@"🖼" forState:UIControlStateNormal];
-    self.galleryButton.titleLabel.font = [UIFont systemFontOfSize:26.0f];
+    [self.galleryButton setImage:[[PMTheme shared] galleryIcon] forState:UIControlStateNormal];
+    [self.galleryButton setBackgroundImage:[[PMTheme shared] darkBarButtonImageHighlighted:NO] forState:UIControlStateNormal];
+    [self.galleryButton setBackgroundImage:[[PMTheme shared] darkBarButtonImageHighlighted:YES] forState:UIControlStateHighlighted];
     [self.galleryButton addTarget:self action:@selector(openGallery:) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomBar addSubview:self.galleryButton];
 
-    // Big Shutter Button (Classic Photomath Red / Coral circle)
+    // Big Shutter Button (Classic Photomath Red / Coral circle with drawn shutter target)
     self.shutterButton = [UIButton buttonWithType:UIButtonTypeCustom];
     self.shutterButton.frame = CGRectMake((w - 70) / 2.0f, 10, 70, 70);
     self.shutterButton.layer.cornerRadius = 35.0f;
     self.shutterButton.layer.borderWidth = 3.5f;
     self.shutterButton.layer.borderColor = [UIColor whiteColor].CGColor;
     self.shutterButton.backgroundColor = [[PMTheme shared] accentColor];
-    [self.shutterButton setTitle:@"x" forState:UIControlStateNormal];
-    self.shutterButton.titleLabel.font = [UIFont boldSystemFontOfSize:34.0f];
-    [self.shutterButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [self.shutterButton setImage:[[PMTheme shared] shutterIcon] forState:UIControlStateNormal];
     [self.shutterButton addTarget:self action:@selector(shutterTapped:) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomBar addSubview:self.shutterButton];
 
     // Manual Math Keyboard button
     self.keyboardButton = [UIButton buttonWithType:UIButtonTypeCustom];
     self.keyboardButton.frame = CGRectMake(w - 75, 20, 50, 50);
-    [self.keyboardButton setTitle:@"⌨" forState:UIControlStateNormal];
-    self.keyboardButton.titleLabel.font = [UIFont systemFontOfSize:26.0f];
+    [self.keyboardButton setImage:[[PMTheme shared] keyboardIcon] forState:UIControlStateNormal];
+    [self.keyboardButton setBackgroundImage:[[PMTheme shared] darkBarButtonImageHighlighted:NO] forState:UIControlStateNormal];
+    [self.keyboardButton setBackgroundImage:[[PMTheme shared] darkBarButtonImageHighlighted:YES] forState:UIControlStateHighlighted];
     [self.keyboardButton addTarget:self action:@selector(openKeyboard:) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomBar addSubview:self.keyboardButton];
 }
@@ -272,10 +276,10 @@
     if ([self.videoDevice lockForConfiguration:&err]) {
         if (self.videoDevice.torchMode == AVCaptureTorchModeOn) {
             self.videoDevice.torchMode = AVCaptureTorchModeOff;
-            [self.torchButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+            self.torchButton.selected = NO;
         } else {
             self.videoDevice.torchMode = AVCaptureTorchModeOn;
-            [self.torchButton setTitleColor:[UIColor yellowColor] forState:UIControlStateNormal];
+            self.torchButton.selected = YES;
         }
         [self.videoDevice unlockForConfiguration];
     }

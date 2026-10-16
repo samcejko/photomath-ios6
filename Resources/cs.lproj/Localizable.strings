@@ -71,4 +71,11 @@
 "Valid OpenRouter API key saved!" = "Platný OpenRouter API klíč byl uložen!";
 "Active key. Credits: $%.2f" = "Aktivní klíč. Kredit: $%.2f";
 "Dynamic fallback automatically tries the next available vision model in the OpenRouter catalog if a model fails or hits rate limits, strictly avoiding content-safety models." = "Dynamický fallback automaticky vyzkouší další dostupný model v katalogu OpenRouter při chybě nebo vyčerpání limitu, přičemž se striktně vyhýbá modelům s omezujícími bezpečnostními filtry.";
+"Only Free Models" = "Pouze bezplatné modely";
+"Import from AI Chat" = "Importovat z AI Chatu";
+"Found" = "Nalezen";
+"Key imported from AI Chat and verified!" = "Klíč byl importován z aplikace AI Chat a ověřen!";
+"Key imported from AI Chat. Verifying..." = "Klíč importován z AI Chatu. Ověřuji...";
+"No API key found in AI Chat." = "V aplikaci AI Chat nebyl nalezen žádný API klíč.";
+"OpenRouter key detected in AI Chat app. Tap 'Import from AI Chat' to use it." = "V aplikaci AI Chat byl detekován OpenRouter klíč. Klepnutím na 'Importovat z AI Chatu' jej použijete.";
 "OK" = "OK";

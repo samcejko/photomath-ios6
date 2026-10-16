@@ -5,6 +5,7 @@
 #import "PMModelCatalog.h"
 #import "PMTheme.h"
 #import "PMCommon.h"
+#import "PMUtils.h"
 
 enum {
     PMSectionAccount = 0,
@@ -86,8 +87,8 @@ enum {
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
     switch (section) {
-        case PMSectionAccount: return 1;
-        case PMSectionSolver: return 3;
+        case PMSectionAccount: return [PMSettings hasAIChatAPIKey] ? 2 : 1;
+        case PMSectionSolver: return 4;
         case PMSectionAppearance: return 2;
         case PMSectionAbout: return 3;
         default: return 0;
@@ -119,19 +120,28 @@ enum {
     static NSString *CellDefault = @"CellDefault";
 
     if (indexPath.section == PMSectionAccount) {
-        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellVal1];
-        if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:CellVal1];
-        cell.textLabel.text = L(@"API Key");
-        NSString *k = [PMSettings shared].apiKey;
-        if (k.length > 8) {
-            cell.detailTextLabel.text = [NSString stringWithFormat:@"%@…%@", [k substringToIndex:6], [k substringFromIndex:k.length - 4]];
-        } else if (k.length) {
-            cell.detailTextLabel.text = L(@"Configured");
+        if (indexPath.row == 0) {
+            UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellVal1];
+            if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:CellVal1];
+            cell.textLabel.text = L(@"API Key");
+            NSString *k = [PMSettings shared].apiKey;
+            if (k.length > 8) {
+                cell.detailTextLabel.text = [NSString stringWithFormat:@"%@…%@", [k substringToIndex:6], [k substringFromIndex:k.length - 4]];
+            } else if (k.length) {
+                cell.detailTextLabel.text = L(@"Configured");
+            } else {
+                cell.detailTextLabel.text = L(@"Not Set");
+            }
+            cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+            return cell;
         } else {
-            cell.detailTextLabel.text = L(@"Not Set");
+            UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellVal1];
+            if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:CellVal1];
+            cell.textLabel.text = L(@"Import from AI Chat");
+            cell.detailTextLabel.text = L(@"Found");
+            cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+            return cell;
         }
-        cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
-        return cell;
     }
 
     if (indexPath.section == PMSectionSolver) {
@@ -155,6 +165,16 @@ enum {
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
             return cell;
         } else if (indexPath.row == 2) {
+            UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
+            if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
+            cell.textLabel.text = L(@"Only Free Models");
+            UISwitch *sw = [[UISwitch alloc] init];
+            sw.on = [PMSettings shared].freeOnly;
+            [sw addTarget:self action:@selector(freeOnlySwitchChanged:) forControlEvents:UIControlEventValueChanged];
+            cell.accessoryView = sw;
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+            return cell;
+        } else if (indexPath.row == 3) {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
             if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
             cell.textLabel.text = L(@"Show Steps by Default");
@@ -220,8 +240,19 @@ enum {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 
     if (indexPath.section == PMSectionAccount) {
-        PMAPIKeyViewController *kvc = [[PMAPIKeyViewController alloc] init];
-        [self.navigationController pushViewController:kvc animated:YES];
+        if (indexPath.row == 0) {
+            PMAPIKeyViewController *kvc = [[PMAPIKeyViewController alloc] init];
+            [self.navigationController pushViewController:kvc animated:YES];
+        } else if (indexPath.row == 1) {
+            NSString *k = [PMSettings availableAIChatAPIKey];
+            if (k.length) {
+                [PMSettings shared].apiKey = k;
+                [tableView reloadData];
+                [PMUtils alertWithTitle:L(@"API Key") message:L(@"Key imported from AI Chat and verified!")];
+            } else {
+                [PMUtils alertWithTitle:L(@"API Key") message:L(@"No API key found in AI Chat.")];
+            }
+        }
     } else if (indexPath.section == PMSectionSolver && indexPath.row == 0) {
         PMModelPickerViewController *mpvc = [[PMModelPickerViewController alloc] init];
         [self.navigationController pushViewController:mpvc animated:YES];
@@ -235,6 +266,11 @@ enum {
 - (void)fallbackSwitchChanged:(UISwitch *)sw
 {
     [PMSettings shared].autoFallback = sw.on;
+}
+
+- (void)freeOnlySwitchChanged:(UISwitch *)sw
+{
+    [PMSettings shared].freeOnly = sw.on;
 }
 
 - (void)stepsSwitchChanged:(UISwitch *)sw

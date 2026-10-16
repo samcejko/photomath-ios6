@@ -2,7 +2,8 @@
 #import "PMCommon.h"
 #import <Security/Security.h>
 
-static NSString * const kKeychainService = @"com.samcejko.photomath";
+static NSString * const kKeychainService = @"com.samcejko.shuttercalc";
+static NSString * const kKeychainServiceOld = @"com.samcejko.photomath";
 static NSString * const kKeychainAccount = @"openrouter-api-key";
 static NSString * const kFallbackKey     = @"apiKey.fallback";
 
@@ -23,12 +24,55 @@ static NSString * const kFallbackKey     = @"apiKey.fallback";
     return s;
 }
 
++ (NSString *)availableAIChatAPIKey
+{
+    // 1. Try com.samcejko.aichat Keychain
+    NSDictionary *q = @{
+        (__bridge id)kSecClass: (__bridge id)kSecClassGenericPassword,
+        (__bridge id)kSecAttrService: @"com.samcejko.aichat",
+        (__bridge id)kSecAttrAccount: @"openrouter-api-key",
+        (__bridge id)kSecReturnData: (__bridge id)kCFBooleanTrue,
+        (__bridge id)kSecMatchLimit: (__bridge id)kSecMatchLimitOne,
+    };
+    CFTypeRef result = NULL;
+    OSStatus st = SecItemCopyMatching((__bridge CFDictionaryRef)q, &result);
+    if (st == errSecSuccess && result) {
+        NSData *d = (__bridge_transfer NSData *)result;
+        NSString *k = [[NSString alloc] initWithData:d encoding:NSUTF8StringEncoding];
+        k = [k stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        if (k.length > 0) return k;
+    }
+
+    // 2. Try preferences plist files of com.samcejko.aichat
+    NSArray *paths = @[
+        @"/var/mobile/Library/Preferences/com.samcejko.aichat.plist",
+        @"/var/jb/var/mobile/Library/Preferences/com.samcejko.aichat.plist"
+    ];
+    for (NSString *p in paths) {
+        if ([[NSFileManager defaultManager] fileExistsAtPath:p]) {
+            NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:p];
+            id k = dict[@"apiKey.fallback"] ?: dict[@"apiKey"];
+            if ([k isKindOfClass:[NSString class]]) {
+                NSString *clean = [k stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+                if (clean.length > 0) return clean;
+            }
+        }
+    }
+    return nil;
+}
+
++ (BOOL)hasAIChatAPIKey
+{
+    return [self availableAIChatAPIKey].length > 0;
+}
+
 - (instancetype)init
 {
     self = [super init];
     if (self) {
         [DEF registerDefaults:@{
             @"autoFallback": @YES,
+            @"freeOnly": @NO,
             @"showStepByStep": @YES,
             @"solutionLanguage": @"auto",
             @"darkTheme": @NO,
@@ -67,6 +111,14 @@ static NSString * const kFallbackKey     = @"apiKey.fallback";
     q[(__bridge id)kSecMatchLimit] = (__bridge id)kSecMatchLimitOne;
     CFTypeRef result = NULL;
     OSStatus st = SecItemCopyMatching((__bridge CFDictionaryRef)q, &result);
+    if (st == errSecSuccess && result) {
+        NSData *d = (__bridge_transfer NSData *)result;
+        return [[NSString alloc] initWithData:d encoding:NSUTF8StringEncoding];
+    }
+    // Also check older service name if upgraded
+    NSMutableDictionary *qOld = [q mutableCopy];
+    qOld[(__bridge id)kSecAttrService] = kKeychainServiceOld;
+    st = SecItemCopyMatching((__bridge CFDictionaryRef)qOld, &result);
     if (st == errSecSuccess && result) {
         NSData *d = (__bridge_transfer NSData *)result;
         return [[NSString alloc] initWithData:d encoding:NSUTF8StringEncoding];
@@ -150,6 +202,18 @@ static NSString * const kFallbackKey     = @"apiKey.fallback";
 - (void)setAutoFallback:(BOOL)autoFallback
 {
     [DEF setBool:autoFallback forKey:@"autoFallback"];
+    [self save];
+    [self notify];
+}
+
+- (BOOL)freeOnly
+{
+    return [DEF boolForKey:@"freeOnly"];
+}
+
+- (void)setFreeOnly:(BOOL)freeOnly
+{
+    [DEF setBool:freeOnly forKey:@"freeOnly"];
     [self save];
     [self notify];
 }

@@ -9,9 +9,14 @@
 @property (nonatomic, copy) NSString *apiKeyLabel;
 - (BOOL)hasAPIKey;
 
+// Import from AIChat (com.samcejko.aichat)
++ (NSString *)availableAIChatAPIKey;
++ (BOOL)hasAIChatAPIKey;
+
 // Model & Fallback
 @property (nonatomic, copy) NSString *preferredModelId; // nil = auto (use top dynamic vision model)
 @property (nonatomic) BOOL autoFallback;                 // default YES
+@property (nonatomic) BOOL freeOnly;                     // default NO (only use $0 vision models)
 @property (nonatomic, strong) NSDate *lastModelsRefresh;
 
 // Solver preferences
