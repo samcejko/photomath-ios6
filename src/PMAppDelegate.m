@@ -63,7 +63,8 @@
         UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
         UIGraphicsEndImageContext();
 
-        NSString *path = @"/tmp/shuttercalc_screen.png";
+        NSString *tmpDir = NSTemporaryDirectory();
+        NSString *path = [tmpDir stringByAppendingPathComponent:@"screen.png"];
         BOOL ok = [UIImagePNGRepresentation(image) writeToFile:path atomically:YES];
         PMLog(@"Snapshot %@: %@", ok ? @"written to" : @"failed for", path);
 
@@ -72,7 +73,8 @@
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
         if ([self.window respondsToSelector:NSSelectorFromString(@"recursiveDescription")]) {
             NSString *desc = [self.window performSelector:NSSelectorFromString(@"recursiveDescription")];
-            [desc writeToFile:@"/tmp/shuttercalc_ui.txt" atomically:YES encoding:NSUTF8StringEncoding error:NULL];
+            NSString *uiPath = [tmpDir stringByAppendingPathComponent:@"ui.txt"];
+            [desc writeToFile:uiPath atomically:YES encoding:NSUTF8StringEncoding error:NULL];
         }
 #pragma clang diagnostic pop
         return YES;
@@ -105,6 +107,14 @@
 }
 
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation
+{
+    if ([[url.scheme lowercaseString] isEqualToString:@"shuttercalc"]) {
+        return [self handleCommandURL:url];
+    }
+    return NO;
+}
+
+- (BOOL)application:(UIApplication *)app openURL:(NSURL *)url options:(NSDictionary<NSString *, id> *)options
 {
     if ([[url.scheme lowercaseString] isEqualToString:@"shuttercalc"]) {
         return [self handleCommandURL:url];
