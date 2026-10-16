@@ -200,6 +200,9 @@
 
     self.previewLayer = [AVCaptureVideoPreviewLayer layerWithSession:self.captureSession];
     self.previewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+    if ([self.previewLayer.connection isVideoOrientationSupported]) {
+        self.previewLayer.connection.videoOrientation = AVCaptureVideoOrientationPortrait;
+    }
     self.previewLayer.frame = self.view.bounds;
     [self.view.layer addSublayer:self.previewLayer];
 
@@ -419,6 +422,10 @@
         return;
     }
 
+    if ([conn isVideoOrientationSupported]) {
+        conn.videoOrientation = AVCaptureVideoOrientationPortrait;
+    }
+
     [self showHUDWithText:L(@"Scanning equation...")];
 
     [self.stillImageOutput captureStillImageAsynchronouslyFromConnection:conn
@@ -434,9 +441,9 @@
         NSData *jpeg = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:sampleBuffer];
         UIImage *rawImage = [UIImage imageWithData:jpeg];
 
-        // Crop to the viewfinder box
-        CGRect normCrop = [self.viewfinderView normalizedCropRectInBounds:self.view.bounds];
-        UIImage *cropped = [PMUtils cropImage:rawImage toNormalizedRect:normCrop];
+        // Crop to the viewfinder box using exact aspect fill coordinates and upright orientation
+        CGRect cropRect = [self.viewfinderView cropRect];
+        UIImage *cropped = [PMUtils cropImage:rawImage fromViewBounds:self.view.bounds cropRect:cropRect];
 
         [self processEquationWithImage:cropped manualLatex:nil];
     }];

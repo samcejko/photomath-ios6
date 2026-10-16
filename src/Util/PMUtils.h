@@ -9,8 +9,10 @@
 + (NSString *)dataURLWithMime:(NSString *)mime data:(NSData *)data;
 
 // Images
++ (UIImage *)normalizedUprightImage:(UIImage *)image;
 + (NSData *)jpegDataForImage:(UIImage *)image maxDimension:(CGFloat)maxDim quality:(CGFloat)quality;
 + (UIImage *)cropImage:(UIImage *)image toNormalizedRect:(CGRect)normalizedRect;
++ (UIImage *)cropImage:(UIImage *)image fromViewBounds:(CGRect)viewBounds cropRect:(CGRect)cropRect;
 + (UIImage *)imageWithColor:(UIColor *)color size:(CGSize)size;
 
 // Paths

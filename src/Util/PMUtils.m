@@ -99,14 +99,73 @@ static const char kBase64Table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr
     return UIImageJPEGRepresentation(scaled ?: image, quality);
 }
 
++ (UIImage *)normalizedUprightImage:(UIImage *)image
+{
+    if (!image) return nil;
+    if (image.imageOrientation == UIImageOrientationUp) return image;
+
+    UIGraphicsBeginImageContextWithOptions(image.size, NO, 1.0f);
+    [image drawInRect:CGRectMake(0, 0, image.size.width, image.size.height)];
+    UIImage *normalized = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return normalized ?: image;
+}
+
++ (UIImage *)cropImage:(UIImage *)image fromViewBounds:(CGRect)viewBounds cropRect:(CGRect)cropRect
+{
+    if (!image || image.size.width <= 0 || image.size.height <= 0) return image;
+    if (viewBounds.size.width <= 0 || viewBounds.size.height <= 0) return image;
+
+    // 1. Normalize orientation so image is strictly upright
+    UIImage *upright = [self normalizedUprightImage:image];
+    if (!upright) upright = image;
+
+    CGFloat imgW = upright.size.width;
+    CGFloat imgH = upright.size.height;
+    CGFloat viewW = viewBounds.size.width;
+    CGFloat viewH = viewBounds.size.height;
+
+    // 2. Map AVLayerVideoGravityResizeAspectFill:
+    // Scale factor that fills the camera preview view:
+    CGFloat scale = MAX(viewW / imgW, viewH / imgH);
+    CGFloat dispW = imgW * scale;
+    CGFloat dispH = imgH * scale;
+
+    // Video preview is centered inside view bounds:
+    CGFloat originX = (viewW - dispW) / 2.0f;
+    CGFloat originY = (viewH - dispH) / 2.0f;
+
+    // Convert cropRect from view coordinates to upright image coordinates:
+    CGFloat cropX = (cropRect.origin.x - originX) / scale;
+    CGFloat cropY = (cropRect.origin.y - originY) / scale;
+    CGFloat cropW = cropRect.size.width / scale;
+    CGFloat cropH = cropRect.size.height / scale;
+
+    // Add 15% horizontal and 20% vertical padding so equations are never clipped at the edges
+    CGFloat padX = cropW * 0.15f;
+    CGFloat padY = cropH * 0.20f;
+    cropX = MAX(0.0f, cropX - padX);
+    cropY = MAX(0.0f, cropY - padY);
+    cropW = MIN(imgW - cropX, cropW + padX * 2.0f);
+    cropH = MIN(imgH - cropY, cropH + padY * 2.0f);
+
+    CGRect pixelCrop = CGRectMake(floorf(cropX), floorf(cropY), floorf(cropW), floorf(cropH));
+    CGImageRef cgRef = CGImageCreateWithImageInRect(upright.CGImage, pixelCrop);
+    if (!cgRef) return upright;
+
+    UIImage *cropped = [UIImage imageWithCGImage:cgRef scale:1.0f orientation:UIImageOrientationUp];
+    CGImageRelease(cgRef);
+    return cropped;
+}
+
 + (UIImage *)cropImage:(UIImage *)image toNormalizedRect:(CGRect)normalizedRect
 {
     if (!image || image.size.width <= 0 || image.size.height <= 0) return image;
-    CGImageRef cgImage = image.CGImage;
-    if (!cgImage) return image;
+    UIImage *upright = [self normalizedUprightImage:image];
+    if (!upright) upright = image;
 
-    CGFloat w = CGImageGetWidth(cgImage);
-    CGFloat h = CGImageGetHeight(cgImage);
+    CGFloat w = upright.size.width;
+    CGFloat h = upright.size.height;
 
     // Clamp normalized coords [0..1]
     CGFloat rx = MAX(0.0f, MIN(1.0f, normalizedRect.origin.x));
@@ -115,10 +174,10 @@ static const char kBase64Table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr
     CGFloat rh = MAX(0.01f, MIN(1.0f - ry, normalizedRect.size.height));
 
     CGRect pixelCrop = CGRectMake(floorf(rx * w), floorf(ry * h), floorf(rw * w), floorf(rh * h));
-    CGImageRef croppedRef = CGImageCreateWithImageInRect(cgImage, pixelCrop);
-    if (!croppedRef) return image;
+    CGImageRef croppedRef = CGImageCreateWithImageInRect(upright.CGImage, pixelCrop);
+    if (!croppedRef) return upright;
 
-    UIImage *cropped = [UIImage imageWithCGImage:croppedRef scale:image.scale orientation:image.imageOrientation];
+    UIImage *cropped = [UIImage imageWithCGImage:croppedRef scale:1.0f orientation:UIImageOrientationUp];
     CGImageRelease(croppedRef);
     return cropped;
 }

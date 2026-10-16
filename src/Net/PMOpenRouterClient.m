@@ -170,23 +170,26 @@ static NSDictionary *PMExtractJSON(NSString *rawText)
     }
 
     NSString *systemPrompt = [NSString stringWithFormat:
-        @"You are an expert mathematical problem solver and OCR system for students.\n"
-        @"Recognize and solve the math problem with highest precision.\n"
-        @"Output ONLY a raw, valid JSON object (no markdown, no backticks, no text before or after), with this schema:\n"
+        @"You are an expert mathematical problem solver and optical character recognition (OCR) engine like Photomath.\n"
+        @"TASK INSTRUCTIONS:\n"
+        @"1. OCR: Accurately read the main mathematical equation or expression in the image. Transcribe it EXACTLY as written into 'problem_latex'. Do NOT invent, drop, or alter any numbers, operators, brackets, or variables.\n"
+        @"2. Ignore surrounding clutter: Ignore exercise numbers (like '1.', 'Ex. 4', 'a)'), page numbers, question instructions, or stray background text outside the main equation.\n"
+        @"3. Solve step by step: Calculate the complete solution step-by-step with clear educational explanations.\n"
+        @"OUTPUT FORMAT: Output ONLY a single raw valid JSON object (no markdown code fences, no extra text):\n"
         @"{\n"
-        @"  \"problem_latex\": \"original problem in standard LaTeX (e.g. 2x + 5 = 15 or \\\\frac{3}{4} + \\\\frac{1}{2})\",\n"
-        @"  \"solution_latex\": \"final answer or result in LaTeX (e.g. x = 5)\",\n"
+        @"  \"problem_latex\": \"exact original equation in LaTeX (e.g. 2x + 5 = 15 or 1+2(2+2))\",\n"
+        @"  \"solution_latex\": \"final simplified answer in LaTeX (e.g. x = 5 or 9)\",\n"
         @"  \"summary\": \"concise 1-sentence summary of the result in %@\",\n"
         @"  \"steps\": [\n"
         @"    {\n"
         @"      \"step_number\": 1,\n"
         @"      \"title\": \"Title of step in %@\",\n"
-        @"      \"latex\": \"Mathematical transformation in LaTeX\",\n"
-        @"      \"explanation\": \"Clear educational explanation of why this step was taken in %@\"\n"
+        @"      \"latex\": \"Mathematical transformation at this step in LaTeX\",\n"
+        @"      \"explanation\": \"Clear educational explanation of this step in %@\"\n"
         @"    }\n"
         @"  ]\n"
         @"}\n"
-        @"Always escape backslashes in JSON (e.g. \\\\frac, \\\\sqrt). Write explanations in %@.",
+        @"Always escape backslashes in JSON (e.g. \\\\frac, \\\\sqrt, \\\\times). Write explanations in %@.",
         langPrompt, langPrompt, langPrompt, langPrompt];
 
     NSMutableArray *userContent = [NSMutableArray array];
@@ -198,12 +201,12 @@ static NSDictionary *PMExtractJSON(NSString *rawText)
     } else {
         [userContent addObject:@{
             @"type": @"text",
-            @"text": @"Please read and solve the mathematical problem shown in this image step by step."
+            @"text": @"Identify the central mathematical equation in the image, transcribe its exact LaTeX into problem_latex, and solve it step-by-step."
         }];
     }
 
     if (image) {
-        NSData *jpg = [PMUtils jpegDataForImage:image maxDimension:960 quality:0.75f];
+        NSData *jpg = [PMUtils jpegDataForImage:image maxDimension:1200 quality:0.80f];
         if (jpg) {
             NSString *dataUrl = [PMUtils dataURLWithMime:@"image/jpeg" data:jpg];
             [userContent addObject:@{
