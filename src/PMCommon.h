@@ -1,4 +1,4 @@
-// PMCommon.h - Shared macros, constants and notifications for Photomath iOS 6.
+// PMCommon.h - Shared macros, constants and notifications for ShutterCalc iOS 6.
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
@@ -6,7 +6,7 @@
 
 #define L(key) NSLocalizedString((key), nil)
 #define PMIsPad() (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
-#define PMLog(fmt, ...) NSLog((@"[Photomath] " fmt), ##__VA_ARGS__)
+#define PMLog(fmt, ...) NSLog((@"[ShutterCalc] " fmt), ##__VA_ARGS__)
 
 static inline void PMMain(dispatch_block_t block)
 {

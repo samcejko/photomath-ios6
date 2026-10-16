@@ -161,7 +161,7 @@
 
     // App title
     UILabel *titleLbl = [[UILabel alloc] initWithFrame:CGRectMake(55, 10, w - 160, 34)];
-    titleLbl.text = @"Photomath";
+    titleLbl.text = L(@"ShutterCalc");
     titleLbl.textColor = [UIColor whiteColor];
     titleLbl.font = [UIFont boldSystemFontOfSize:18.0f];
     titleLbl.backgroundColor = [UIColor clearColor];

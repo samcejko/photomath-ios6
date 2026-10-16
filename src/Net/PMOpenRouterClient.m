@@ -4,8 +4,8 @@
 #import "PMCommon.h"
 
 static NSString * const kHost = @"openrouter.ai";
-static NSString * const kAppReferer = @"https://github.com/samcejko/photomath-ios6";
-static NSString * const kAppTitle = @"Photomath for iOS 6";
+static NSString * const kAppReferer = @"https://github.com/samcejko/shuttercalc-ios6";
+static NSString * const kAppTitle = @"ShutterCalc for iOS 6";
 
 @implementation PMOpenRouterClient
 

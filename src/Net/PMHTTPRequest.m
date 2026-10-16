@@ -78,7 +78,7 @@ typedef NS_ENUM(NSInteger, PMChunkState) {
     NSMutableString *s = [NSMutableString string];
     [s appendFormat:@"%@ %@ HTTP/1.1\r\n", self.method ?: @"GET", self.path ?: @"/"];
     [s appendFormat:@"Host: %@\r\n", self.host];
-    [s appendString:@"User-Agent: Photomath/1.0 (iOS 6; armv7)\r\n"];
+    [s appendString:@"User-Agent: ShutterCalc/1.0 (iOS 6; armv7)\r\n"];
     [s appendString:@"Connection: close\r\n"];
     BOOL hasContentType = NO;
     for (NSString *key in self.headers) {

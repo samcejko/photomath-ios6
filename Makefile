@@ -18,7 +18,7 @@ THEOS_DEVICE_USER ?= root
 
 include $(THEOS)/makefiles/common.mk
 
-APPLICATION_NAME := Photomath
+APPLICATION_NAME := ShutterCalc
 
 # iosMath (LaTeX rendering, MIT) is fetched into vendor/iosMath by CI; the NS*/AppKit files are macOS only.
 IOSMATH_FILES := $(filter-out %NSBezierPath+addLineToPoint.m %NSColor+HexString.m %NSView+backgroundColor.m, \
@@ -26,18 +26,18 @@ IOSMATH_FILES := $(filter-out %NSBezierPath+addLineToPoint.m %NSColor+HexString.
                    $(wildcard vendor/iosMath/iosMath/render/*.m) \
                    $(wildcard vendor/iosMath/iosMath/render/internal/*.m))
 
-Photomath_FILES := $(wildcard src/*.m) $(wildcard src/*/*.m) \
+ShutterCalc_FILES := $(wildcard src/*.m) $(wildcard src/*/*.m) \
                    vendor/mbedtls_glue.c \
                    $(wildcard vendor/mbedtls/library/*.c) \
                    $(IOSMATH_FILES)
 
-Photomath_FRAMEWORKS := UIKit Foundation CoreGraphics QuartzCore CoreText Security ImageIO AVFoundation CoreMedia CoreVideo AssetsLibrary
+ShutterCalc_FRAMEWORKS := UIKit Foundation CoreGraphics QuartzCore CoreText Security ImageIO AVFoundation CoreMedia CoreVideo AssetsLibrary
 ifeq ($(THEOS_PACKAGE_SCHEME),rootless)
-Photomath_FRAMEWORKS += PhotosUI
+ShutterCalc_FRAMEWORKS += PhotosUI
 endif
 
 # Flags for every C-family file (also the vendored mbedTLS sources)
-Photomath_CFLAGS := -Isrc -Isrc/Net -Isrc/Model -Isrc/Theme -Isrc/UI -Isrc/Util \
+ShutterCalc_CFLAGS := -Isrc -Isrc/Net -Isrc/Model -Isrc/Theme -Isrc/UI -Isrc/Util \
                     -Ivendor -Ivendor/mbedtls/include -Ivendor/mbedtls/library \
                     -Ivendor/iosMath/iosMath/lib -Ivendor/iosMath/iosMath/render -Ivendor/iosMath/iosMath/render/internal \
                     -Os -fvisibility=hidden \
@@ -45,23 +45,23 @@ Photomath_CFLAGS := -Isrc -Isrc/Net -Isrc/Model -Isrc/Theme -Isrc/UI -Isrc/Util 
                     -Wno-deprecated-declarations -Wno-unknown-warning-option \
                     -Wno-nullability-completeness -Wno-nullability-completeness-on-arrays -Wno-error
 
-Photomath_OBJCFLAGS := -fobjc-arc -Wunguarded-availability -include UIKit/UIKit.h
+ShutterCalc_OBJCFLAGS := -fobjc-arc -Wunguarded-availability -include UIKit/UIKit.h
 
-Photomath_LDFLAGS := -lz
+ShutterCalc_LDFLAGS := -lz
 
 include $(THEOS)/makefiles/application.mk
 
-PHOTOMATH_STAGED_APP := $(THEOS_STAGING_DIR)/Applications/Photomath.app
+SHUTTERCALC_STAGED_APP := $(THEOS_STAGING_DIR)/Applications/ShutterCalc.app
 
 ifeq ($(THEOS_PACKAGE_SCHEME),rootless)
 after-stage::
-	python3 "$(THEOS_PROJECT_DIR)/tools/modern_bundle.py" "$(PHOTOMATH_STAGED_APP)"
-	ldid -S"$(THEOS_PROJECT_DIR)/entitlements-arm64.xml" "$(PHOTOMATH_STAGED_APP)/Photomath"
+	python3 "$(THEOS_PROJECT_DIR)/tools/modern_bundle.py" "$(SHUTTERCALC_STAGED_APP)"
+	ldid -S"$(THEOS_PROJECT_DIR)/entitlements-arm64.xml" "$(SHUTTERCALC_STAGED_APP)/ShutterCalc"
 
 before-package::
 	sed -i -e 's/^Depends: .*/Depends: firmware (>= 15.0)/' "$(THEOS_STAGING_DIR)/DEBIAN/control"
 	printf '%s\n' '#!/bin/sh' '[ "$$1" = configure ] || exit 0' \
-		'command -v uicache >/dev/null 2>&1 && { uicache -p /var/jb/Applications/Photomath.app >/dev/null 2>&1 || uicache -a >/dev/null 2>&1; }' \
+		'command -v uicache >/dev/null 2>&1 && { uicache -p /var/jb/Applications/ShutterCalc.app >/dev/null 2>&1 || uicache -a >/dev/null 2>&1; }' \
 		'exit 0' > "$(THEOS_STAGING_DIR)/DEBIAN/postinst"
 	printf '%s\n' '#!/bin/sh' '[ "$$1" = remove ] || exit 0' \
 		'command -v uicache >/dev/null 2>&1 && uicache -a >/dev/null 2>&1' \

@@ -1,4 +1,4 @@
-# Photomath for iOS 6
+# ShutterCalc for iOS 6
 
 A universal camera math scanner and solver for **jailbroken iOS 6.x** devices (armv7, e.g. iPad 2, iPhone 4S),
 with a second build for **64-bit devices with iOS 14–17** (iPhone X and newer: rootless jailbreaks and TrollStore)
@@ -28,18 +28,18 @@ Get the latest packages from the [Releases](../../releases/latest) page:
 
 | Device | Package |
 | --- | --- |
-| iOS 6.x, 32-bit (iPad 2, iPhone 4S, …) | `Photomath-<version>.ipa` or `com.samcejko.photomath_<version>_iphoneos-arm.deb` |
-| iOS 14–17, 64-bit, rootless jailbreak (palera1n, Dopamine) | `com.samcejko.photomath_<version>_iphoneos-arm64.deb` |
-| iOS 14–17, 64-bit, TrollStore | `Photomath-<version>-arm64.ipa` |
+| iOS 6.x, 32-bit (iPad 2, iPhone 4S, …) | `ShutterCalc-<version>.ipa` or `com.samcejko.shuttercalc_<version>_iphoneos-arm.deb` |
+| iOS 14–17, 64-bit, rootless jailbreak (palera1n, Dopamine) | `com.samcejko.shuttercalc_<version>_iphoneos-arm64.deb` |
+| iOS 14–17, 64-bit, TrollStore | `ShutterCalc-<version>-arm64.ipa` |
 
 ## Installing on the device
 
 The easy way: add the repository `http://repo.samcejko.eu/` in Cydia (Sources → Edit → Add), Sileo, Zebra or Installer
-and install Photomath from there.
+and install ShutterCalc from there.
 
 By hand:
 1. Cydia: **AppSync Unified** (repo `https://cydia.akemi.ai/`) and **IPA Installer Console** (BigBoss).
-2. Copy the `.ipa` to the device and run `ipainstaller -f Photomath.ipa`, or install the `.deb` via `dpkg -i` followed by `uicache`.
+2. Copy the `.ipa` to the device and run `ipainstaller -f ShutterCalc.ipa`, or install the `.deb` via `dpkg -i` followed by `uicache`.
 
 On iOS 14–17 (64-bit): with a rootless jailbreak install the `iphoneos-arm64` `.deb` with `dpkg -i`; without a jailbreak open the `-arm64.ipa` in [TrollStore](https://github.com/opa334/TrollStore).
 
@@ -47,8 +47,8 @@ On iOS 14–17 (64-bit): with a rootless jailbreak install the `iphoneos-arm64` 
 
 No Mac needed. Every push and pull request runs `.github/workflows/build.yml` on Ubuntu with Theos, Mbed TLS and iosMath:
 
-- `ios6-armv7`: iOS 9.3 SDK, deployment target 6.0 → `Photomath-<version>.ipa` and `.deb`.
-- `ios14-arm64`: iOS 16.5 SDK, deployment target 14.0 → `Photomath-<version>-arm64.ipa` and `iphoneos-arm64.deb`.
+- `ios6-armv7`: iOS 9.3 SDK, deployment target 6.0 → `ShutterCalc-<version>.ipa` and `.deb`.
+- `ios14-arm64`: iOS 16.5 SDK, deployment target 14.0 → `ShutterCalc-<version>-arm64.ipa` and `iphoneos-arm64.deb`.
 
 Local PowerShell helpers (Windows):
 ```powershell

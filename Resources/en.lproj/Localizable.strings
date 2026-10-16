@@ -1,6 +1,6 @@
-/* English Localization for Photomath iOS 6 */
+/* English Localization for ShutterCalc iOS 6 */
 
-"Photomath" = "Photomath";
+"ShutterCalc" = "ShutterCalc";
 "Solution" = "Solution";
 "PROBLEM" = "PROBLEM";
 "RESULT" = "RESULT";
@@ -39,7 +39,7 @@
 "OpenRouter Account" = "OpenRouter Account";
 "Math Solver & Models" = "Math Solver & Models";
 "Appearance & Security" = "Appearance & Security";
-"About Photomath" = "About Photomath";
+"About ShutterCalc" = "About ShutterCalc";
 "API Key" = "API Key";
 "Configured" = "Configured";
 "Not Set" = "Not Set";

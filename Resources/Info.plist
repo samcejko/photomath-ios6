@@ -10,15 +10,15 @@
 		<string>cs</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-	<string>Photomath</string>
+	<string>ShutterCalc</string>
 	<key>CFBundleExecutable</key>
-	<string>Photomath</string>
+	<string>ShutterCalc</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.samcejko.photomath</string>
+	<string>com.samcejko.shuttercalc</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Photomath</string>
+	<string>ShutterCalc</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
@@ -66,9 +66,9 @@
 	<key>UIPrerenderedIcon</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>Photomath uses the camera to scan and solve handwritten or printed math problems.</string>
+	<string>ShutterCalc uses the camera to scan and solve handwritten or printed math problems.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Photomath uses photos to solve math problems from your photo library.</string>
+	<string>ShutterCalc uses photos to solve math problems from your photo library.</string>
 	<key>CFBundleIconFiles</key>
 	<array>
 		<string>Icon.png</string>

@@ -100,7 +100,7 @@ enum {
         case PMSectionAccount: return L(@"OpenRouter Account");
         case PMSectionSolver: return L(@"Math Solver & Models");
         case PMSectionAppearance: return L(@"Appearance & Security");
-        case PMSectionAbout: return L(@"About Photomath");
+        case PMSectionAbout: return L(@"About ShutterCalc");
         default: return nil;
     }
 }

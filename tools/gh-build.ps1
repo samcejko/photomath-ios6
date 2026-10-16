@@ -21,7 +21,7 @@ param(
     [string]$HeadSha = ''
 )
 
-$AppName = 'Photomath'
+$AppName = 'ShutterCalc'
 
 $ErrorActionPreference = 'Stop'
 if (-not $OutDir) { $OutDir = Join-Path (Split-Path -Parent $PSScriptRoot) 'packages' }

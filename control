@@ -1,8 +1,8 @@
-Package: com.samcejko.photomath
-Name: Photomath
+Package: com.samcejko.shuttercalc
+Name: ShutterCalc
 Version: 1.0.0
 Architecture: iphoneos-arm
-Description: Photomath math camera solver for iOS 6 with step-by-step solutions
+Description: Camera math scanner and solver for iOS 6 with step-by-step solutions
 Maintainer: samcejko
 Author: samcejko
 Section: Education

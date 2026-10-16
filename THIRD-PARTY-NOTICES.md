@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Photomath for iOS 6 incorporates components from the following open source projects:
+ShutterCalc for iOS 6 incorporates components from the following open source projects:
 
 ## iosMath
 - License: MIT License

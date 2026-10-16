@@ -1,4 +1,4 @@
-name: Build Photomath (iOS 6 armv7 + iOS 14 arm64)
+name: Build ShutterCalc (iOS 6 armv7 + iOS 14 arm64)
 
 on:
   push:
@@ -23,11 +23,11 @@ jobs:
           - name: ios6-armv7
             scheme: ""
             suffix: ""
-            artifact: Photomath-packages
+            artifact: ShutterCalc-packages
           - name: ios14-arm64
             scheme: rootless
             suffix: "-arm64"
-            artifact: Photomath-packages-arm64
+            artifact: ShutterCalc-packages-arm64
     name: ${{ matrix.name }}
     runs-on: ubuntu-22.04
     timeout-minutes: 45
@@ -172,11 +172,11 @@ jobs:
           if [ -n "${{ matrix.scheme }}" ]; then export THEOS_PACKAGE_SCHEME="${{ matrix.scheme }}"; fi
           make clean || true
           make package FINALPACKAGE=1 -j"$(nproc)" -k 2>&1 | tee build.log
-          APP=$(find .theos/_ -type d -name Photomath.app | head -n1)
+          APP=$(find .theos/_ -type d -name ShutterCalc.app | head -n1)
           test -n "$APP"
           echo "APP=$APP" >> "$GITHUB_ENV"
           ls -la "$APP"
-          lipo -info "$APP/Photomath" 2>/dev/null || true
+          lipo -info "$APP/ShutterCalc" 2>/dev/null || true
           ls -la packages/
 
       - name: Make IPA
@@ -184,11 +184,11 @@ jobs:
           set -e
           export PATH="$THEOS/toolchain/linux/iphone/bin:$THEOS/bin:$PATH"
           LDID=$(command -v ldid || find "$THEOS" -type f -name ldid | head -n1)
-          "$LDID" -S "$APP/Photomath"
+          "$LDID" -S "$APP/ShutterCalc"
           VERSION=$(grep '^Version:' control | cut -d' ' -f2)
           rm -rf /tmp/ipa && mkdir -p /tmp/ipa/Payload packages
           cp -a "$APP" /tmp/ipa/Payload/
-          (cd /tmp/ipa && zip -qr9 "$GITHUB_WORKSPACE/packages/Photomath-$VERSION${{ matrix.suffix }}.ipa" Payload)
+          (cd /tmp/ipa && zip -qr9 "$GITHUB_WORKSPACE/packages/ShutterCalc-$VERSION${{ matrix.suffix }}.ipa" Payload)
           ls -la packages/
 
       - name: Upload packages

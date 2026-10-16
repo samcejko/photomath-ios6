@@ -1,6 +1,6 @@
-/* Czech Localization for Photomath iOS 6 */
+/* Czech Localization for ShutterCalc iOS 6 */
 
-"Photomath" = "Photomath";
+"ShutterCalc" = "ShutterCalc";
 "Solution" = "Řešení";
 "PROBLEM" = "PŘÍKLAD";
 "RESULT" = "VÝSLEDEK";
@@ -39,7 +39,7 @@
 "OpenRouter Account" = "OpenRouter účet";
 "Math Solver & Models" = "Matematický řešič a modely";
 "Appearance & Security" = "Vzhled a zabezpečení";
-"About Photomath" = "O aplikaci Photomath";
+"About ShutterCalc" = "O aplikaci ShutterCalc";
 "API Key" = "API klíč";
 "Configured" = "Nastaveno";
 "Not Set" = "Nenastaveno";
