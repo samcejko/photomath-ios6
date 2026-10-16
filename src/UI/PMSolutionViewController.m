@@ -20,7 +20,7 @@
 @property (nonatomic, strong) UILabel *stepsTitle;
 @property (nonatomic, strong) UIView *footerView;
 @property (nonatomic, strong) UILabel *modelLabel;
-@property (nonatomic, strong) UIButton *copyButton;
+@property (nonatomic, strong) UIButton *copySolutionButton;
 @end
 
 @implementation PMSolutionViewController
@@ -148,17 +148,17 @@
     self.modelLabel.textAlignment = NSTextAlignmentCenter;
     [footer addSubview:self.modelLabel];
 
-    self.copyButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    self.copyButton.frame = CGRectMake(15, 34, w - 30, 40);
+    self.copySolutionButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    self.copySolutionButton.frame = CGRectMake(15, 34, w - 30, 40);
     UIImage *btnBg = [[PMTheme shared] glossyButtonImageWithColor:[[PMTheme shared] accentColor] highlighted:NO];
-    [self.copyButton setBackgroundImage:btnBg forState:UIControlStateNormal];
-    [self.copyButton setTitle:L(@"Copy Solution to Clipboard") forState:UIControlStateNormal];
-    [self.copyButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    self.copyButton.titleLabel.font = [UIFont boldSystemFontOfSize:15.0f];
-    self.copyButton.titleLabel.shadowColor = [UIColor colorWithWhite:0.0f alpha:0.4f];
-    self.copyButton.titleLabel.shadowOffset = CGSizeMake(0, -1);
-    [self.copyButton addTarget:self action:@selector(copyAction:) forControlEvents:UIControlEventTouchUpInside];
-    [footer addSubview:self.copyButton];
+    [self.copySolutionButton setBackgroundImage:btnBg forState:UIControlStateNormal];
+    [self.copySolutionButton setTitle:L(@"Copy Solution to Clipboard") forState:UIControlStateNormal];
+    [self.copySolutionButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    self.copySolutionButton.titleLabel.font = [UIFont boldSystemFontOfSize:15.0f];
+    self.copySolutionButton.titleLabel.shadowColor = [UIColor colorWithWhite:0.0f alpha:0.4f];
+    self.copySolutionButton.titleLabel.shadowOffset = CGSizeMake(0, -1);
+    [self.copySolutionButton addTarget:self action:@selector(copyAction:) forControlEvents:UIControlEventTouchUpInside];
+    [footer addSubview:self.copySolutionButton];
 
     self.footerView = footer;
     self.tableView.tableFooterView = footer;
@@ -187,7 +187,7 @@
     if (self.footerView && fabs(self.footerView.frame.size.width - w) > 1.0f) {
         self.footerView.frame = CGRectMake(0, 0, w, 110);
         self.modelLabel.frame = CGRectMake(14, 8, w - 28, 20);
-        self.copyButton.frame = CGRectMake(15, 34, w - 30, 40);
+        self.copySolutionButton.frame = CGRectMake(15, 34, w - 30, 40);
         self.tableView.tableFooterView = self.footerView;
     }
 }
