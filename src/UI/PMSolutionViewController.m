@@ -20,7 +20,7 @@
 @property (nonatomic, strong) UILabel *stepsTitle;
 @property (nonatomic, strong) UIView *footerView;
 @property (nonatomic, strong) UILabel *modelLabel;
-@property (nonatomic, strong) UIButton *copySolutionButton;
+@property (nonatomic, strong) UIButton *clipboardButton;
 @end
 
 @implementation PMSolutionViewController
@@ -148,17 +148,17 @@
     self.modelLabel.textAlignment = NSTextAlignmentCenter;
     [footer addSubview:self.modelLabel];
 
-    self.copySolutionButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    self.copySolutionButton.frame = CGRectMake(15, 34, w - 30, 40);
+    self.clipboardButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    self.clipboardButton.frame = CGRectMake(15, 34, w - 30, 40);
     UIImage *btnBg = [[PMTheme shared] glossyButtonImageWithColor:[[PMTheme shared] accentColor] highlighted:NO];
-    [self.copySolutionButton setBackgroundImage:btnBg forState:UIControlStateNormal];
-    [self.copySolutionButton setTitle:L(@"Copy Solution to Clipboard") forState:UIControlStateNormal];
-    [self.copySolutionButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    self.copySolutionButton.titleLabel.font = [UIFont boldSystemFontOfSize:15.0f];
-    self.copySolutionButton.titleLabel.shadowColor = [UIColor colorWithWhite:0.0f alpha:0.4f];
-    self.copySolutionButton.titleLabel.shadowOffset = CGSizeMake(0, -1);
-    [self.copySolutionButton addTarget:self action:@selector(copyAction:) forControlEvents:UIControlEventTouchUpInside];
-    [footer addSubview:self.copySolutionButton];
+    [self.clipboardButton setBackgroundImage:btnBg forState:UIControlStateNormal];
+    [self.clipboardButton setTitle:L(@"Copy Solution to Clipboard") forState:UIControlStateNormal];
+    [self.clipboardButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    self.clipboardButton.titleLabel.font = [UIFont boldSystemFontOfSize:15.0f];
+    self.clipboardButton.titleLabel.shadowColor = [UIColor colorWithWhite:0.0f alpha:0.4f];
+    self.clipboardButton.titleLabel.shadowOffset = CGSizeMake(0, -1);
+    [self.clipboardButton addTarget:self action:@selector(copyAction:) forControlEvents:UIControlEventTouchUpInside];
+    [footer addSubview:self.clipboardButton];
 
     self.footerView = footer;
     self.tableView.tableFooterView = footer;
@@ -187,7 +187,7 @@
     if (self.footerView && fabs(self.footerView.frame.size.width - w) > 1.0f) {
         self.footerView.frame = CGRectMake(0, 0, w, 110);
         self.modelLabel.frame = CGRectMake(14, 8, w - 28, 20);
-        self.copySolutionButton.frame = CGRectMake(15, 34, w - 30, 40);
+        self.clipboardButton.frame = CGRectMake(15, 34, w - 30, 40);
         self.tableView.tableFooterView = self.footerView;
     }
 }
