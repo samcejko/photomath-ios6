@@ -43,11 +43,24 @@
 
 @implementation PMScannerViewController
 
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        self.title = L(@"Scanner");
+        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:L(@"Scanner")
+                                                                                 style:UIBarButtonItemStyleBordered
+                                                                                target:nil
+                                                                                action:nil];
+    }
+    return self;
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor blackColor];
-    self.navigationController.navigationBarHidden = YES;
+    [self.navigationController setNavigationBarHidden:YES animated:NO];
 
     [self setupCamera];
     [self setupViewfinder];
@@ -65,7 +78,7 @@
 - (void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
-    self.navigationController.navigationBarHidden = YES;
+    [self.navigationController setNavigationBarHidden:YES animated:animated];
     if (self.captureSession && !self.captureSession.isRunning) {
         [self.captureSession startRunning];
     }
@@ -75,6 +88,7 @@
 - (void)viewWillDisappear:(BOOL)animated
 {
     [super viewWillDisappear:animated];
+    [self.navigationController setNavigationBarHidden:NO animated:animated];
     [self.viewfinderView stopScanningAnimation];
     if (self.captureSession && self.captureSession.isRunning) {
         [self.captureSession stopRunning];

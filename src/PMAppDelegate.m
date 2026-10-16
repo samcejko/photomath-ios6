@@ -5,6 +5,8 @@
 #import "PMSettings.h"
 #import "PMModelCatalog.h"
 #import "PMCommon.h"
+#import "PMMathSolution.h"
+#import "PMSolutionViewController.h"
 
 @implementation PMAppDelegate
 
@@ -80,9 +82,18 @@
         return YES;
     }
 
+    if (self.navigationController.presentedViewController) {
+        [self.navigationController dismissViewControllerAnimated:NO completion:nil];
+    }
+
     PMScannerViewController *scannerVC = nil;
     if ([self.navigationController.viewControllers.firstObject isKindOfClass:[PMScannerViewController class]]) {
         scannerVC = (PMScannerViewController *)self.navigationController.viewControllers.firstObject;
+    }
+
+    if ([target isEqualToString:@"scanner"]) {
+        [self.navigationController popToRootViewControllerAnimated:NO];
+        return YES;
     }
 
     if ([target isEqualToString:@"keyboard"]) {
@@ -100,6 +111,42 @@
     if ([target isEqualToString:@"history"]) {
         [self.navigationController popToRootViewControllerAnimated:NO];
         if (scannerVC) [scannerVC openHistory:nil];
+        return YES;
+    }
+
+    if ([target isEqualToString:@"solution"] || [target isEqualToString:@"demo_solution"]) {
+        [self.navigationController popToRootViewControllerAnimated:NO];
+        NSDictionary *json = @{
+            @"problem_latex": @"2x + 5 = 15",
+            @"solution_latex": @"x = 5",
+            @"summary": @"Solve linear equation for x",
+            @"steps": @[
+                @{
+                    @"step_number": @1,
+                    @"title": @"Subtract 5 from both sides",
+                    @"latex": @"2x = 15 - 5",
+                    @"explanation": @"Isolate the variable term on the left side by subtracting 5."
+                },
+                @{
+                    @"step_number": @2,
+                    @"title": @"Simplify right side",
+                    @"latex": @"2x = 10",
+                    @"explanation": @"15 minus 5 gives 10."
+                },
+                @{
+                    @"step_number": @3,
+                    @"title": @"Divide both sides by 2",
+                    @"latex": @"x = \\frac{10}{2} = 5",
+                    @"explanation": @"Divide both sides by the coefficient 2 to solve for x."
+                }
+            ]
+        };
+        PMMathSolution *sol = [PMMathSolution solutionFromJSON:json modelUsed:@"google/gemini-flash-1.5" image:nil];
+        PMSolutionViewController *svc = [[PMSolutionViewController alloc] initWithSolution:sol];
+        svc.onEditProblemRequested = ^(NSString *prob) {
+            if (scannerVC) [scannerVC openKeyboardWithLatex:prob];
+        };
+        [self.navigationController pushViewController:svc animated:NO];
         return YES;
     }
 

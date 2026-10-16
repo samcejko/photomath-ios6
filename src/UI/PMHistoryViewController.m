@@ -22,6 +22,14 @@
     return self;
 }
 
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self.navigationController setNavigationBarHidden:NO animated:animated];
+    [self.tableView reloadData];
+    [self updateEmptyState];
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];

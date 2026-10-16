@@ -31,6 +31,12 @@
     return self;
 }
 
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self.navigationController setNavigationBarHidden:NO animated:animated];
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
@@ -152,7 +158,8 @@
     CGFloat solveY = CGRectGetMaxY(self.keypadContainer.frame) + 10.0f;
     self.solveButton.frame = CGRectMake(margin, solveY, cardW, solveH);
 
-    CGFloat contentH = CGRectGetMaxY(self.solveButton.frame) + margin + 10.0f;
+    UIEdgeInsets insets = PMSafeAreaInsets(self.view);
+    CGFloat contentH = CGRectGetMaxY(self.solveButton.frame) + margin + insets.bottom + 12.0f;
     self.scrollView.contentSize = CGSizeMake(w, MAX(contentH, h + 1.0f));
 }
 
