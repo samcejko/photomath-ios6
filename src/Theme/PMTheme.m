@@ -176,7 +176,7 @@
     // Top gloss reflection (iOS 6 glossy dome)
     CGRect glossRect = CGRectMake(0, 0, size.width, size.height * 0.45f);
     [[UIColor colorWithWhite:1.0f alpha:highlighted ? 0.05f : 0.25f] setFill];
-    UIRectFillUsingBlendMode(glossRect, kCGBlendModeSourceOver);
+    UIRectFillUsingBlendMode(glossRect, kCGBlendModeNormal);
 
     CGContextRestoreGState(ctx);
 
