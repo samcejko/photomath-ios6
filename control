@@ -1,0 +1,9 @@
+Package: com.samcejko.photomath
+Name: Photomath
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Photomath math camera solver for iOS 6 with step-by-step solutions
+Maintainer: samcejko
+Author: samcejko
+Section: Education
+Depends: firmware (>= 6.0), firmware (<< 11.0)
