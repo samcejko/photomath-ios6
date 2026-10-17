@@ -8,6 +8,7 @@
 #import "PMModelCatalog.h"
 #import "PMSettings.h"
 #import "PMHistoryStore.h"
+#import "PMOfflineSolver.h"
 #import "PMTheme.h"
 #import "PMModern.h"
 #import "PMUtils.h"
@@ -451,6 +452,22 @@
 
 - (void)processEquationWithImage:(UIImage *)image manualLatex:(NSString *)manualLatex
 {
+    // If entered via keyboard and preferOfflineSolver is enabled, try offline solver first (100% offline & instant)
+    if (manualLatex.length > 0 && [PMSettings shared].preferOfflineSolver && [PMOfflineSolver canSolveProblem:manualLatex]) {
+        NSError *offlineErr = nil;
+        PMMathSolution *sol = [PMOfflineSolver solveProblem:manualLatex error:&offlineErr];
+        if (sol) {
+            [self hideHUD];
+            [[PMHistoryStore shared] addSolution:sol];
+            PMSolutionViewController *svc = [[PMSolutionViewController alloc] initWithSolution:sol];
+            svc.onEditProblemRequested = ^(NSString *problemLatex) {
+                [self openKeyboardWithLatex:problemLatex];
+            };
+            [self.navigationController pushViewController:svc animated:YES];
+            return;
+        }
+    }
+
     // Generate dynamic fallback chain from live catalog (no static models hardcoded)
     NSString *pref = [PMSettings shared].preferredModelId;
     NSArray *chain = [[PMModelCatalog shared] fallbackChainStartingWithModelId:pref];
@@ -461,6 +478,20 @@
             NSArray *newChain = [[PMModelCatalog shared] fallbackChainStartingWithModelId:pref];
             if (!newChain.count) {
                 [self hideHUD];
+                // If offline and problem was typed, attempt offline solver before giving up
+                if (manualLatex.length > 0) {
+                    NSError *offErr = nil;
+                    PMMathSolution *offSol = [PMOfflineSolver solveProblem:manualLatex error:&offErr];
+                    if (offSol) {
+                        [[PMHistoryStore shared] addSolution:offSol];
+                        PMSolutionViewController *svc = [[PMSolutionViewController alloc] initWithSolution:offSol];
+                        svc.onEditProblemRequested = ^(NSString *problemLatex) {
+                            [self openKeyboardWithLatex:problemLatex];
+                        };
+                        [self.navigationController pushViewController:svc animated:YES];
+                        return;
+                    }
+                }
                 [PMUtils alertWithTitle:L(@"No Models Available")
                                 message:L(@"Could not find vision models in OpenRouter catalog. Check your connection.")];
                 return;
@@ -490,6 +521,20 @@
         PMMain(^{
             [self hideHUD];
             if (error || !solutionJSON) {
+                // If keyboard equation and network failed, try offline engine
+                if (manualLatex.length > 0) {
+                    NSError *offErr = nil;
+                    PMMathSolution *offSol = [PMOfflineSolver solveProblem:manualLatex error:&offErr];
+                    if (offSol) {
+                        [[PMHistoryStore shared] addSolution:offSol];
+                        PMSolutionViewController *svc = [[PMSolutionViewController alloc] initWithSolution:offSol];
+                        svc.onEditProblemRequested = ^(NSString *problemLatex) {
+                            [self openKeyboardWithLatex:problemLatex];
+                        };
+                        [self.navigationController pushViewController:svc animated:YES];
+                        return;
+                    }
+                }
                 [PMUtils alertWithTitle:L(@"Solving Failed") message:error.localizedDescription];
                 return;
             }

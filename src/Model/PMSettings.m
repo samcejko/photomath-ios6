@@ -73,6 +73,7 @@ static NSString * const kFallbackKey     = @"apiKey.fallback";
         [DEF registerDefaults:@{
             @"autoFallback": @YES,
             @"freeOnly": @NO,
+            @"preferOfflineSolver": @YES,
             @"showStepByStep": @YES,
             @"solutionLanguage": @"auto",
             @"darkTheme": @NO,
@@ -227,6 +228,18 @@ static NSString * const kFallbackKey     = @"apiKey.fallback";
 {
     [DEF setObject:lastModelsRefresh forKey:@"lastModelsRefresh"];
     [self save];
+}
+
+- (BOOL)preferOfflineSolver
+{
+    return [DEF boolForKey:@"preferOfflineSolver"];
+}
+
+- (void)setPreferOfflineSolver:(BOOL)preferOfflineSolver
+{
+    [DEF setBool:preferOfflineSolver forKey:@"preferOfflineSolver"];
+    [self save];
+    [self notify];
 }
 
 - (BOOL)showStepByStep

@@ -20,6 +20,7 @@
 @property (nonatomic, strong) NSDate *lastModelsRefresh;
 
 // Solver preferences
+@property (nonatomic) BOOL preferOfflineSolver;          // default YES (instant on-device solver)
 @property (nonatomic) BOOL showStepByStep;              // default YES
 @property (nonatomic, copy) NSString *solutionLanguage; // @"auto", @"cs", @"en"
 

@@ -88,7 +88,7 @@ enum {
 {
     switch (section) {
         case PMSectionAccount: return [PMSettings hasAIChatAPIKey] ? 2 : 1;
-        case PMSectionSolver: return 4;
+        case PMSectionSolver: return 5;
         case PMSectionAppearance: return 2;
         case PMSectionAbout: return 3;
         default: return 0;
@@ -109,7 +109,7 @@ enum {
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section
 {
     if (section == PMSectionSolver) {
-        return L(@"Dynamic fallback automatically tries the next available vision model in the OpenRouter catalog if a model fails or hits rate limits, strictly avoiding content-safety models.");
+        return L(@"Offline Engine solves keyboard equations locally without internet. Dynamic fallback tries vision models for photos and complex problems.");
     }
     return nil;
 }
@@ -157,6 +157,16 @@ enum {
         } else if (indexPath.row == 1) {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
             if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
+            cell.textLabel.text = L(@"Offline Engine (Instant)");
+            UISwitch *sw = [[UISwitch alloc] init];
+            sw.on = [PMSettings shared].preferOfflineSolver;
+            [sw addTarget:self action:@selector(offlineSwitchChanged:) forControlEvents:UIControlEventValueChanged];
+            cell.accessoryView = sw;
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+            return cell;
+        } else if (indexPath.row == 2) {
+            UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
+            if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
             cell.textLabel.text = L(@"Auto Fallback on Error");
             UISwitch *sw = [[UISwitch alloc] init];
             sw.on = [PMSettings shared].autoFallback;
@@ -164,7 +174,7 @@ enum {
             cell.accessoryView = sw;
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
             return cell;
-        } else if (indexPath.row == 2) {
+        } else if (indexPath.row == 3) {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
             if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
             cell.textLabel.text = L(@"Only Free Models");
@@ -174,7 +184,7 @@ enum {
             cell.accessoryView = sw;
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
             return cell;
-        } else if (indexPath.row == 3) {
+        } else if (indexPath.row == 4) {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
             if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
             cell.textLabel.text = L(@"Show Steps by Default");
@@ -263,6 +273,11 @@ enum {
 }
 
 #pragma mark - Switches
+
+- (void)offlineSwitchChanged:(UISwitch *)sw
+{
+    [PMSettings shared].preferOfflineSolver = sw.on;
+}
 
 - (void)fallbackSwitchChanged:(UISwitch *)sw
 {

@@ -104,6 +104,22 @@ def make_icon(size):
     return base_icon().resize((size, size), LANCZOS)
 
 
+def rounded_mask(size, radius_ratio=0.1757):
+    """An anti-aliased rounded-rectangle alpha mask (iOS 6 home-screen corner radius)."""
+    scale = 4
+    big = size * scale
+    mask = Image.new("L", (big, big), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, big - 1, big - 1), radius=int(big * radius_ratio), fill=255)
+    return mask.resize((size, size), LANCZOS)
+
+
+def make_home_icon(size):
+    """The icon as it sits on the home screen: rounded corners baked in (UIPrerenderedIcon is on)."""
+    icon = make_icon(size).convert("RGBA")
+    icon.putalpha(rounded_mask(size))
+    return icon
+
+
 def make_launch(w, h):
     img = vertical_gradient((w, h), (242, 244, 248), (220, 224, 232))
     d = ImageDraw.Draw(img)
@@ -169,7 +185,7 @@ LAUNCH = {
 
 if __name__ == "__main__":
     for name, size in ICONS.items():
-        make_icon(size).save(os.path.join(OUT, name), "PNG")
+        make_home_icon(size).save(os.path.join(OUT, name), "PNG")
         print("icon", name)
 
     for name, (w, h) in LAUNCH.items():
