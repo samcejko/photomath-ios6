@@ -739,7 +739,7 @@
         BOOL hasBase = NO;
         if (self.cursorPosition > 0) {
             unichar prevC = [self.currentLatex characterAtIndex:self.cursorPosition - 1];
-            if (isalnum(prevC) || prevC == ')' || prevC == ']' || prevC == '}') {
+            if (isalpha(prevC) || prevC == ')' || prevC == ']' || prevC == '}') {
                 hasBase = YES;
             }
         }
@@ -752,8 +752,38 @@
         return;
     }
 
+    // x^3
     if ([key isEqualToString:@"x^3"]) {
-        [self insertText:@"^3" cursorOffset:2];
+        BOOL hasBase = NO;
+        if (self.cursorPosition > 0) {
+            unichar prevC = [self.currentLatex characterAtIndex:self.cursorPosition - 1];
+            if (isalpha(prevC) || prevC == ')' || prevC == ']' || prevC == '}') {
+                hasBase = YES;
+            }
+        }
+        if (hasBase) {
+            [self insertText:@"^3" cursorOffset:2];
+        } else {
+            [self insertText:@"x^3" cursorOffset:3];
+        }
+        [self updateMathPreview];
+        return;
+    }
+
+    // x^4
+    if ([key isEqualToString:@"x^4"]) {
+        BOOL hasBase = NO;
+        if (self.cursorPosition > 0) {
+            unichar prevC = [self.currentLatex characterAtIndex:self.cursorPosition - 1];
+            if (isalpha(prevC) || prevC == ')' || prevC == ']' || prevC == '}') {
+                hasBase = YES;
+            }
+        }
+        if (hasBase) {
+            [self insertText:@"^4" cursorOffset:2];
+        } else {
+            [self insertText:@"x^4" cursorOffset:3];
+        }
         [self updateMathPreview];
         return;
     }

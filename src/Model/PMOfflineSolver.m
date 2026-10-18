@@ -467,9 +467,16 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 {
     PMNode *node = [self parseUnary];
     [self skipWhitespace];
-    while (self.currentChar == '*' || self.currentChar == '/' || self.currentChar == '%') {
-        NSString *op = [NSString stringWithCharacters:&_currentChar length:1];
-        [self advance];
+    while (self.currentChar == '*' || self.currentChar == '/' || self.currentChar == '%' ||
+           (self.currentChar >= 'a' && self.currentChar <= 'z') ||
+           (self.currentChar >= 'A' && self.currentChar <= 'Z') ||
+           self.currentChar == '(' || self.currentChar == '[' || self.currentChar == '{' ||
+           self.currentChar == '\\' || self.currentChar == 0x03C0) {
+        NSString *op = @"*";
+        if (self.currentChar == '*' || self.currentChar == '/' || self.currentChar == '%') {
+            op = [NSString stringWithCharacters:&_currentChar length:1];
+            [self advance];
+        }
         PMNode *right = [self parseUnary];
         PMNode *parent = [[PMNode alloc] init];
         parent.type = PMNodeBinaryOp;
@@ -749,6 +756,13 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     // Superscript unicode
     [s replaceOccurrencesOfString:@"²" withString:@"^2" options:0 range:NSMakeRange(0, s.length)];
     [s replaceOccurrencesOfString:@"³" withString:@"^3" options:0 range:NSMakeRange(0, s.length)];
+
+    // Strip whitespace between numbers and variables/functions or parentheses
+    NSRegularExpression *spaceNumVar = [NSRegularExpression regularExpressionWithPattern:@"([0-9])\\s+([a-zA-Z\\(\\[\\{\\\\π])" options:0 error:nil];
+    s = [[spaceNumVar stringByReplacingMatchesInString:s options:0 range:NSMakeRange(0, s.length) withTemplate:@"$1*$2"] mutableCopy];
+
+    NSRegularExpression *spaceVarNum = [NSRegularExpression regularExpressionWithPattern:@"([a-zA-Z\\)\\]\\}])\\s+([0-9])" options:0 error:nil];
+    s = [[spaceVarNum stringByReplacingMatchesInString:s options:0 range:NSMakeRange(0, s.length) withTemplate:@"$1*$2"] mutableCopy];
 
     NSSet *fnSet = [NSSet setWithObjects:@"sin", @"cos", @"tan", @"sinh", @"cosh", @"tanh",
                     @"asin", @"acos", @"atan", @"arcsin", @"arccos", @"arctan",
