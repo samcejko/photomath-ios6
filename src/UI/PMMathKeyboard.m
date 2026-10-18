@@ -10,7 +10,7 @@
 
 #pragma mark - Callout View
 
-@interface PMKeyCalloutView : UIView
+@interface PMKeyCalloutView : UIView <UIGestureRecognizerDelegate>
 @property (nonatomic, copy) void (^onOptionSelected)(NSString *key);
 @property (nonatomic, strong) UIView *bubbleView;
 @property (nonatomic, strong) CAShapeLayer *pointerLayer;
@@ -38,14 +38,17 @@
         _optionButtons = [NSMutableArray array];
         self.backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.01f]; // Transparent touch interceptor
 
-        // Measure options
+        // Measure options (arrange in 2 rows if > 5 items to fit 320pt iPhone screen)
         NSInteger count = options.count;
         CGFloat btnW = 44.0f;
         CGFloat btnH = 44.0f;
         CGFloat spacing = 4.0f;
         CGFloat padding = 8.0f;
-        CGFloat bubbleW = padding * 2 + count * btnW + (count - 1) * spacing;
-        CGFloat bubbleH = btnH + padding * 2;
+
+        NSInteger cols = (count <= 5) ? count : (count + 1) / 2;
+        NSInteger rows = (count + cols - 1) / cols;
+        CGFloat bubbleW = padding * 2 + cols * btnW + (cols - 1) * spacing;
+        CGFloat bubbleH = padding * 2 + rows * btnH + (rows - 1) * spacing;
         CGFloat pointerH = 9.0f;
         CGFloat totalH = bubbleH + pointerH;
 
@@ -110,8 +113,13 @@
             NSString *key = options[i];
             NSString *title = (i < titles.count) ? titles[i] : key;
 
+            NSInteger r = i / cols;
+            NSInteger c = i % cols;
+            CGFloat bx = padding + c * (btnW + spacing);
+            CGFloat by = padding + r * (btnH + spacing);
+
             UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
-            btn.frame = CGRectMake(padding + i * (btnW + spacing), padding, btnW, btnH);
+            btn.frame = CGRectMake(bx, by, btnW, btnH);
             btn.backgroundColor = [UIColor colorWithWhite:0.25f alpha:1.0f];
             btn.layer.cornerRadius = 6.0f;
             btn.layer.borderWidth = 0.5f;
@@ -130,9 +138,18 @@
 
         // Tap outside to dismiss
         UITapGestureRecognizer *outsideTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissAnimated)];
+        outsideTap.delegate = self;
         [self addGestureRecognizer:outsideTap];
     }
     return self;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch
+{
+    if ([touch.view isDescendantOfView:self.bubbleView]) {
+        return NO;
+    }
+    return YES;
 }
 
 - (void)optionTapped:(UIButton *)btn
@@ -168,7 +185,7 @@
 
 #pragma mark - PMMathKeyboard
 
-@interface PMMathKeyboard ()
+@interface PMMathKeyboard () <UIScrollViewDelegate>
 @property (nonatomic, strong) UIScrollView *scrollView;
 @property (nonatomic, strong) UIView *previewCard;
 @property (nonatomic, strong) UITextField *rawTextField;
@@ -212,6 +229,7 @@
     self.scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
     self.scrollView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.scrollView.alwaysBounceVertical = YES;
+    self.scrollView.delegate = self;
     PMModernKeepScrollViewInsets(self.scrollView);
     [self.view addSubview:self.scrollView];
 
@@ -834,6 +852,14 @@
     self.currentLatex = [left stringByAppendingString:right];
 }
 
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView
+{
+    if (self.activeCallout) {
+        [self.activeCallout dismissAnimated];
+        self.activeCallout = nil;
+    }
+}
+
 - (void)updateMathPreview
 {
     if (self.cursorPosition < 0) self.cursorPosition = 0;
@@ -847,7 +873,28 @@
         self.rawTextField.selectedTextRange = [self.rawTextField textRangeFromPosition:pos toPosition:pos];
     }
 
-    self.mathPreviewLabel.latex = self.currentLatex.length ? self.currentLatex : @"";
+    NSString *renderLatex = self.currentLatex.length ? self.currentLatex : @"";
+    if (renderLatex.length > 0) {
+        NSInteger openBraces = 0;
+        for (NSUInteger i = 0; i < renderLatex.length; i++) {
+            unichar c = [renderLatex characterAtIndex:i];
+            if (c == '{') openBraces++;
+            else if (c == '}' && openBraces > 0) openBraces--;
+        }
+        if (openBraces > 0) {
+            NSMutableString *bal = [renderLatex mutableCopy];
+            for (NSInteger b = 0; b < openBraces; b++) {
+                [bal appendString:@"}"];
+            }
+            renderLatex = bal;
+        }
+    }
+
+    @try {
+        self.mathPreviewLabel.latex = renderLatex;
+    } @catch (NSException *e) {
+        self.mathPreviewLabel.latex = @"";
+    }
 }
 
 - (void)solveTapped:(id)sender

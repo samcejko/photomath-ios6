@@ -57,8 +57,8 @@ static PMFraction doubleToFraction(double val) {
     if (fabs(val - round(val)) < eps) {
         return PMFractionMake((long long)round(val), 1);
     }
-    // Continued fraction expansion
-    double x = val;
+    BOOL neg = (val < 0);
+    double x = fabs(val);
     long long m[2][2] = { {1, 0}, {0, 1} };
     while (m[1][0] * (m[1][0] + m[1][1]) <= 10000) {
         long long a = (long long)floor(x);
@@ -71,18 +71,22 @@ static PMFraction doubleToFraction(double val) {
         if (x > 1e7) break;
     }
     double approx = (double)m[0][0] / (double)m[1][0];
-    if (fabs(val - approx) < 1e-4) {
-        return PMFractionMake(m[0][0], m[1][0]);
+    if (fabs(fabs(val) - approx) < 1e-4) {
+        return PMFractionMake(neg ? -m[0][0] : m[0][0], m[1][0]);
     }
     return (PMFraction){ 0, 0 };
 }
 
 static NSString *formatFractionOrDouble(double val) {
+    if (fabs(val) < 1e-9) return @"0";
     if (fabs(val - round(val)) < 1e-9) {
         return [NSString stringWithFormat:@"%lld", (long long)round(val)];
     }
     PMFraction f = doubleToFraction(val);
     if (f.den > 1 && f.den <= 1000) {
+        if (f.num < 0) {
+            return [NSString stringWithFormat:@"-\\frac{%lld}{%lld}", -f.num, f.den];
+        }
         return [NSString stringWithFormat:@"\\frac{%lld}{%lld}", f.num, f.den];
     }
     // Format double cleanly
@@ -100,43 +104,118 @@ typedef struct {
     double c0; // constant
     double c1; // x
     double c2; // x^2
+    double c3; // x^3
+    double c4; // x^4
     BOOL valid;
 } PMPoly;
 
 static PMPoly PMPolyMakeConst(double c) {
-    return (PMPoly){ c, 0, 0, YES };
+    return (PMPoly){ c, 0, 0, 0, 0, YES };
 }
 
 static PMPoly PMPolyMakeVar(void) {
-    return (PMPoly){ 0, 1.0, 0, YES };
+    return (PMPoly){ 0, 1.0, 0, 0, 0, YES };
 }
 
 static PMPoly PMPolyAdd(PMPoly a, PMPoly b) {
-    if (!a.valid || !b.valid) return (PMPoly){0,0,0,NO};
-    return (PMPoly){ a.c0 + b.c0, a.c1 + b.c1, a.c2 + b.c2, YES };
+    if (!a.valid || !b.valid) return (PMPoly){0,0,0,0,0,NO};
+    return (PMPoly){ a.c0 + b.c0, a.c1 + b.c1, a.c2 + b.c2, a.c3 + b.c3, a.c4 + b.c4, YES };
 }
 
 static PMPoly PMPolySub(PMPoly a, PMPoly b) {
-    if (!a.valid || !b.valid) return (PMPoly){0,0,0,NO};
-    return (PMPoly){ a.c0 - b.c0, a.c1 - b.c1, a.c2 - b.c2, YES };
+    if (!a.valid || !b.valid) return (PMPoly){0,0,0,0,0,NO};
+    return (PMPoly){ a.c0 - b.c0, a.c1 - b.c1, a.c2 - b.c2, a.c3 - b.c3, a.c4 - b.c4, YES };
+}
+
+static PMPoly PMPolyMulConst(PMPoly a, double k) {
+    if (!a.valid) return (PMPoly){0,0,0,0,0,NO};
+    return (PMPoly){ a.c0 * k, a.c1 * k, a.c2 * k, a.c3 * k, a.c4 * k, YES };
+}
+
+static PMPoly PMPolyDivConst(PMPoly a, double d) {
+    if (!a.valid || fabs(d) < 1e-12) return (PMPoly){0,0,0,0,0,NO};
+    return (PMPoly){ a.c0 / d, a.c1 / d, a.c2 / d, a.c3 / d, a.c4 / d, YES };
 }
 
 static PMPoly PMPolyMul(PMPoly a, PMPoly b) {
-    if (!a.valid || !b.valid) return (PMPoly){0,0,0,NO};
-    // If degree would exceed 2, invalid for quadratic
-    if (fabs(a.c2) > 1e-9 && (fabs(b.c1) > 1e-9 || fabs(b.c2) > 1e-9)) return (PMPoly){0,0,0,NO};
-    if (fabs(b.c2) > 1e-9 && (fabs(a.c1) > 1e-9 || fabs(a.c2) > 1e-9)) return (PMPoly){0,0,0,NO};
-    if (fabs(a.c1) > 1e-9 && fabs(b.c1) > 1e-9 && (fabs(a.c2) > 1e-9 || fabs(b.c2) > 1e-9)) return (PMPoly){0,0,0,NO};
+    if (!a.valid || !b.valid) return (PMPoly){0,0,0,0,0,NO};
+    if (fabs(a.c1) < 1e-9 && fabs(a.c2) < 1e-9 && fabs(a.c3) < 1e-9 && fabs(a.c4) < 1e-9) {
+        return PMPolyMulConst(b, a.c0);
+    }
+    if (fabs(b.c1) < 1e-9 && fabs(b.c2) < 1e-9 && fabs(b.c3) < 1e-9 && fabs(b.c4) < 1e-9) {
+        return PMPolyMulConst(a, b.c0);
+    }
 
     double c0 = a.c0 * b.c0;
     double c1 = a.c0 * b.c1 + a.c1 * b.c0;
     double c2 = a.c0 * b.c2 + a.c1 * b.c1 + a.c2 * b.c0;
-    return (PMPoly){ c0, c1, c2, YES };
+    double c3 = a.c0 * b.c3 + a.c1 * b.c2 + a.c2 * b.c1 + a.c3 * b.c0;
+    double c4 = a.c0 * b.c4 + a.c1 * b.c3 + a.c2 * b.c2 + a.c3 * b.c1 + a.c4 * b.c0;
+
+    double higher = a.c1*b.c4 + a.c2*b.c3 + a.c3*b.c2 + a.c4*b.c1 +
+                    a.c2*b.c4 + a.c3*b.c3 + a.c4*b.c2 +
+                    a.c3*b.c4 + a.c4*b.c3 + a.c4*b.c4;
+    if (fabs(higher) > 1e-9) {
+        return (PMPoly){0,0,0,0,0,NO};
+    }
+    return (PMPoly){ c0, c1, c2, c3, c4, YES };
 }
 
-static PMPoly PMPolyDivConst(PMPoly a, double d) {
-    if (!a.valid || fabs(d) < 1e-12) return (PMPoly){0,0,0,NO};
-    return (PMPoly){ a.c0 / d, a.c1 / d, a.c2 / d, YES };
+#pragma mark - Polynomial LaTeX Formatter
+
+static NSString *formatPolyEquation(double a, double b, double c, NSString *varName) {
+    NSMutableString *s = [NSMutableString string];
+    BOOL hasTerm = NO;
+
+    // x^2 term
+    if (fabs(a) >= 1e-9) {
+        if (fabs(a - 1.0) < 1e-9) {
+            [s appendFormat:@"%@^2", varName];
+        } else if (fabs(a - (-1.0)) < 1e-9) {
+            [s appendFormat:@"-%@^2", varName];
+        } else {
+            [s appendFormat:@"%@%@^2", formatFractionOrDouble(a), varName];
+        }
+        hasTerm = YES;
+    }
+
+    // x term
+    if (fabs(b) >= 1e-9) {
+        if (hasTerm) {
+            if (b > 0) {
+                [s appendString:@" + "];
+            } else {
+                [s appendString:@" - "];
+            }
+        } else if (b < 0) {
+            [s appendString:@"-"];
+        }
+
+        double absB = fabs(b);
+        if (fabs(absB - 1.0) < 1e-9) {
+            [s appendFormat:@"%@", varName];
+        } else {
+            [s appendFormat:@"%@%@", formatFractionOrDouble(absB), varName];
+        }
+        hasTerm = YES;
+    }
+
+    // Constant term
+    if (fabs(c) >= 1e-9 || !hasTerm) {
+        if (hasTerm) {
+            if (c > 0) {
+                [s appendString:@" + "];
+            } else {
+                [s appendString:@" - "];
+            }
+            [s appendFormat:@"%@", formatFractionOrDouble(fabs(c))];
+        } else {
+            [s appendFormat:@"%@", formatFractionOrDouble(c)];
+        }
+    }
+
+    [s appendString:@" = 0"];
+    return s;
 }
 
 #pragma mark - AST Node
@@ -155,7 +234,6 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 @property (nonatomic, copy) NSString *stringValue;
 @property (nonatomic, strong) PMNode *left;
 @property (nonatomic, strong) PMNode *right;
-@property (nonatomic, strong) NSArray *children;
 
 - (double)evaluateNumericWithError:(NSError **)error;
 - (PMPoly)evaluatePolyForVar:(NSString *)varName error:(NSError **)error;
@@ -228,6 +306,9 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
             if ([fn isEqualToString:@"arcsin"] || [fn isEqualToString:@"asin"]) return asin(arg);
             if ([fn isEqualToString:@"arccos"] || [fn isEqualToString:@"acos"]) return acos(arg);
             if ([fn isEqualToString:@"arctan"] || [fn isEqualToString:@"atan"]) return atan(arg);
+            if ([fn isEqualToString:@"sinh"]) return sinh(arg);
+            if ([fn isEqualToString:@"cosh"]) return cosh(arg);
+            if ([fn isEqualToString:@"tanh"]) return tanh(arg);
             if ([fn isEqualToString:@"log"] || [fn isEqualToString:@"log10"]) return log10(arg);
             if ([fn isEqualToString:@"ln"]) return log(arg);
             if ([fn isEqualToString:@"abs"]) return fabs(arg);
@@ -253,16 +334,16 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
                 return PMPolyMakeConst(M_E);
             }
             if (error) *error = [NSError errorWithDomain:@"PMOfflineSolver" code:5 userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Multiple or unknown variable: %@", self.stringValue]}];
-            return (PMPoly){0,0,0,NO};
+            return (PMPoly){0,0,0,0,0,NO};
         }
         case PMNodeUnaryOp: {
             PMPoly p = [self.left evaluatePolyForVar:varName error:error];
             if (!p.valid) return p;
             if ([self.stringValue isEqualToString:@"-"]) {
-                return (PMPoly){ -p.c0, -p.c1, -p.c2, YES };
+                return (PMPoly){ -p.c0, -p.c1, -p.c2, -p.c3, -p.c4, YES };
             }
             if ([self.stringValue isEqualToString:@"+"]) return p;
-            return (PMPoly){0,0,0,NO};
+            return (PMPoly){0,0,0,0,0,NO};
         }
         case PMNodeBinaryOp: {
             PMPoly l = [self.left evaluatePolyForVar:varName error:error];
@@ -275,44 +356,49 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
             if ([self.stringValue isEqualToString:@"*"]) return PMPolyMul(l, r);
             if ([self.stringValue isEqualToString:@"/"]) {
                 // Denominator must be a constant
-                if (fabs(r.c1) > 1e-9 || fabs(r.c2) > 1e-9) {
+                if (fabs(r.c1) > 1e-9 || fabs(r.c2) > 1e-9 || fabs(r.c3) > 1e-9 || fabs(r.c4) > 1e-9) {
                     if (error) *error = [NSError errorWithDomain:@"PMOfflineSolver" code:6 userInfo:@{NSLocalizedDescriptionKey: @"Rational polynomials with variable denominator not supported offline"}];
-                    return (PMPoly){0,0,0,NO};
+                    return (PMPoly){0,0,0,0,0,NO};
                 }
                 return PMPolyDivConst(l, r.c0);
             }
             if ([self.stringValue isEqualToString:@"^"]) {
-                // If power is constant 2 or 1
-                if (fabs(r.c1) > 1e-9 || fabs(r.c2) > 1e-9) return (PMPoly){0,0,0,NO};
-                if (fabs(r.c0 - 2.0) < 1e-9) {
-                    return PMPolyMul(l, l);
-                }
-                if (fabs(r.c0 - 1.0) < 1e-9) {
-                    return l;
+                if (fabs(r.c1) > 1e-9 || fabs(r.c2) > 1e-9 || fabs(r.c3) > 1e-9 || fabs(r.c4) > 1e-9) return (PMPoly){0,0,0,0,0,NO};
+                // If base is a constant
+                if (fabs(l.c1) < 1e-9 && fabs(l.c2) < 1e-9 && fabs(l.c3) < 1e-9 && fabs(l.c4) < 1e-9) {
+                    return PMPolyMakeConst(pow(l.c0, r.c0));
                 }
                 if (fabs(r.c0) < 1e-9) {
                     return PMPolyMakeConst(1.0);
                 }
-                // If base is a constant
-                if (fabs(l.c1) < 1e-9 && fabs(l.c2) < 1e-9) {
-                    return PMPolyMakeConst(pow(l.c0, r.c0));
+                if (fabs(r.c0 - 1.0) < 1e-9) {
+                    return l;
                 }
-                return (PMPoly){0,0,0,NO};
+                if (fabs(r.c0 - 2.0) < 1e-9) {
+                    return PMPolyMul(l, l);
+                }
+                if (fabs(r.c0 - 3.0) < 1e-9) {
+                    return PMPolyMul(PMPolyMul(l, l), l);
+                }
+                if (fabs(r.c0 - 4.0) < 1e-9) {
+                    PMPoly sq = PMPolyMul(l, l);
+                    return PMPolyMul(sq, sq);
+                }
+                return (PMPoly){0,0,0,0,0,NO};
             }
-            return (PMPoly){0,0,0,NO};
+            return (PMPoly){0,0,0,0,0,NO};
         }
         case PMNodeFunction: {
-            // Function of variable not algebraic
             PMPoly arg = [self.left evaluatePolyForVar:varName error:error];
             if (!arg.valid) return arg;
-            if (fabs(arg.c1) < 1e-9 && fabs(arg.c2) < 1e-9) {
+            if (fabs(arg.c1) < 1e-9 && fabs(arg.c2) < 1e-9 && fabs(arg.c3) < 1e-9 && fabs(arg.c4) < 1e-9) {
                 double val = [self evaluateNumericWithError:error];
                 return PMPolyMakeConst(val);
             }
-            return (PMPoly){0,0,0,NO};
+            return (PMPoly){0,0,0,0,0,NO};
         }
     }
-    return (PMPoly){0,0,0,NO};
+    return (PMPoly){0,0,0,0,0,NO};
 }
 
 @end
@@ -379,12 +465,12 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 
 - (PMNode *)parseTerm
 {
-    PMNode *node = [self parseFactor];
+    PMNode *node = [self parseUnary];
     [self skipWhitespace];
     while (self.currentChar == '*' || self.currentChar == '/' || self.currentChar == '%') {
         NSString *op = [NSString stringWithCharacters:&_currentChar length:1];
         [self advance];
-        PMNode *right = [self parseFactor];
+        PMNode *right = [self parseUnary];
         PMNode *parent = [[PMNode alloc] init];
         parent.type = PMNodeBinaryOp;
         parent.stringValue = op;
@@ -396,29 +482,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
     return node;
 }
 
-- (PMNode *)parseFactor
-{
-    PMNode *node = [self parsePower];
-    return node;
-}
-
-- (PMNode *)parsePower
-{
-    PMNode *node = [self parseUnary];
-    [self skipWhitespace];
-    if (self.currentChar == '^') {
-        [self advance];
-        PMNode *right = [self parsePower]; // Right-associative
-        PMNode *parent = [[PMNode alloc] init];
-        parent.type = PMNodeBinaryOp;
-        parent.stringValue = @"^";
-        parent.left = node;
-        parent.right = right;
-        return parent;
-    }
-    return node;
-}
-
+// Unary plus/minus binds looser than power (-x^2 is -(x^2), not (-x)^2)
 - (PMNode *)parseUnary
 {
     [self skipWhitespace];
@@ -432,6 +496,11 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         node.left = child;
         return node;
     }
+    return [self parsePower];
+}
+
+- (PMNode *)parsePower
+{
     PMNode *node = [self parsePrimary];
     [self skipWhitespace];
     if (self.currentChar == '!') {
@@ -440,7 +509,18 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         fac.type = PMNodeUnaryOp;
         fac.stringValue = @"!";
         fac.left = node;
-        return fac;
+        node = fac;
+        [self skipWhitespace];
+    }
+    if (self.currentChar == '^') {
+        [self advance];
+        PMNode *right = [self parseUnary]; // Power can take unary minus like 2^-3
+        PMNode *parent = [[PMNode alloc] init];
+        parent.type = PMNodeBinaryOp;
+        parent.stringValue = @"^";
+        parent.left = node;
+        parent.right = right;
+        return parent;
     }
     return node;
 }
@@ -533,6 +613,23 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 
 @implementation PMOfflineSolver
 
+static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
+    if (openBracePos < 0 || openBracePos >= str.length) return NSMakeRange(NSNotFound, 0);
+    if ([str characterAtIndex:openBracePos] != '{') return NSMakeRange(NSNotFound, 0);
+    NSInteger depth = 0;
+    for (NSInteger i = openBracePos; i < str.length; i++) {
+        unichar c = [str characterAtIndex:i];
+        if (c == '{') depth++;
+        else if (c == '}') {
+            depth--;
+            if (depth == 0) {
+                return NSMakeRange(openBracePos + 1, i - openBracePos - 1);
+            }
+        }
+    }
+    return NSMakeRange(NSNotFound, 0);
+}
+
 + (NSString *)cleanLatexToMath:(NSString *)latex
 {
     if (!latex.length) return @"";
@@ -554,36 +651,73 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
     [s replaceOccurrencesOfString:@"÷" withString:@"/" options:0 range:NSMakeRange(0, s.length)];
     [s replaceOccurrencesOfString:@"−" withString:@"-" options:0 range:NSMakeRange(0, s.length)];
 
-    // Convert \frac{a}{b} -> ((a)/(b))
-    NSRegularExpression *fracRegex = [NSRegularExpression regularExpressionWithPattern:@"\\\\frac\\{([^\\{\\}]+)\\}\\{([^\\{\\}]+)\\}" options:0 error:nil];
+    // Degree conversions
+    [s replaceOccurrencesOfString:@"^\\circ" withString:@"*(pi/180)" options:0 range:NSMakeRange(0, s.length)];
+    [s replaceOccurrencesOfString:@"°" withString:@"*(pi/180)" options:0 range:NSMakeRange(0, s.length)];
+
+    // Decimal comma in numbers (e.g. 3,5 -> 3.5)
+    for (NSInteger i = 1; i + 1 < s.length; i++) {
+        if ([s characterAtIndex:i] == ',') {
+            unichar prev = [s characterAtIndex:i - 1];
+            unichar next = [s characterAtIndex:i + 1];
+            if (isdigit(prev) && isdigit(next)) {
+                [s replaceCharactersInRange:NSMakeRange(i, 1) withString:@"."];
+            }
+        }
+    }
+
+    // Convert \frac{a}{b} using balanced brace parser (supports arbitrary nesting)
     while (YES) {
-        NSTextCheckingResult *m = [fracRegex firstMatchInString:s options:0 range:NSMakeRange(0, s.length)];
-        if (!m) break;
-        NSString *num = [s substringWithRange:[m rangeAtIndex:1]];
-        NSString *den = [s substringWithRange:[m rangeAtIndex:2]];
+        NSRange fracRange = [s rangeOfString:@"\\frac{"];
+        if (fracRange.location == NSNotFound) break;
+        NSInteger numStart = fracRange.location + 5;
+        NSRange numRange = findBalancedBraces(s, numStart);
+        if (numRange.location == NSNotFound) break;
+        NSInteger denStart = numRange.location + numRange.length + 1;
+        while (denStart < s.length && [s characterAtIndex:denStart] == ' ') denStart++;
+        if (denStart >= s.length || [s characterAtIndex:denStart] != '{') break;
+        NSRange denRange = findBalancedBraces(s, denStart);
+        if (denRange.location == NSNotFound) break;
+
+        NSString *num = [s substringWithRange:numRange];
+        NSString *den = [s substringWithRange:denRange];
+        NSInteger totalLen = (denRange.location + denRange.length + 1) - fracRange.location;
         NSString *repl = [NSString stringWithFormat:@"((%@)/(%@))", num, den];
-        [s replaceCharactersInRange:m.range withString:repl];
+        [s replaceCharactersInRange:NSMakeRange(fracRange.location, totalLen) withString:repl];
     }
 
     // Convert \sqrt[n]{x} -> ((x)^(1/(n)))
-    NSRegularExpression *nrootRegex = [NSRegularExpression regularExpressionWithPattern:@"\\\\sqrt\\[([^\\(\\)\\[\\]]+)\\]\\{([^\\{\\}]+)\\}" options:0 error:nil];
     while (YES) {
-        NSTextCheckingResult *m = [nrootRegex firstMatchInString:s options:0 range:NSMakeRange(0, s.length)];
-        if (!m) break;
-        NSString *n = [s substringWithRange:[m rangeAtIndex:1]];
-        NSString *x = [s substringWithRange:[m rangeAtIndex:2]];
-        NSString *repl = [NSString stringWithFormat:@"((%@)^(1/(%@)))", x, n];
-        [s replaceCharactersInRange:m.range withString:repl];
+        NSRange rootRange = [s rangeOfString:@"\\sqrt["];
+        if (rootRange.location == NSNotFound) break;
+        NSInteger nStart = rootRange.location + 6;
+        NSInteger nEnd = nStart;
+        while (nEnd < s.length && [s characterAtIndex:nEnd] != ']') nEnd++;
+        if (nEnd >= s.length) break;
+        NSString *nStr = [s substringWithRange:NSMakeRange(nStart, nEnd - nStart)];
+        NSInteger xStart = nEnd + 1;
+        while (xStart < s.length && [s characterAtIndex:xStart] == ' ') xStart++;
+        if (xStart >= s.length || [s characterAtIndex:xStart] != '{') break;
+        NSRange xRange = findBalancedBraces(s, xStart);
+        if (xRange.location == NSNotFound) break;
+        NSString *xStr = [s substringWithRange:xRange];
+
+        NSInteger totalLen = (xRange.location + xRange.length + 1) - rootRange.location;
+        NSString *repl = [NSString stringWithFormat:@"((%@)^(1/(%@)))", xStr, nStr];
+        [s replaceCharactersInRange:NSMakeRange(rootRange.location, totalLen) withString:repl];
     }
 
-    // Convert \sqrt{x} -> sqrt(x)
-    NSRegularExpression *sqrtRegex = [NSRegularExpression regularExpressionWithPattern:@"\\\\sqrt\\{([^\\{\\}]+)\\}" options:0 error:nil];
+    // Convert \sqrt{x} -> sqrt(x) using balanced braces
     while (YES) {
-        NSTextCheckingResult *m = [sqrtRegex firstMatchInString:s options:0 range:NSMakeRange(0, s.length)];
-        if (!m) break;
-        NSString *arg = [s substringWithRange:[m rangeAtIndex:1]];
+        NSRange sqrtRange = [s rangeOfString:@"\\sqrt{"];
+        if (sqrtRange.location == NSNotFound) break;
+        NSInteger argStart = sqrtRange.location + 5;
+        NSRange argRange = findBalancedBraces(s, argStart);
+        if (argRange.location == NSNotFound) break;
+        NSString *arg = [s substringWithRange:argRange];
+        NSInteger totalLen = (argRange.location + argRange.length + 1) - sqrtRange.location;
         NSString *repl = [NSString stringWithFormat:@"sqrt(%@)", arg];
-        [s replaceCharactersInRange:m.range withString:repl];
+        [s replaceCharactersInRange:NSMakeRange(sqrtRange.location, totalLen) withString:repl];
     }
 
     // Functions
@@ -593,25 +727,34 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
     [s replaceOccurrencesOfString:@"\\arcsin" withString:@"arcsin" options:0 range:NSMakeRange(0, s.length)];
     [s replaceOccurrencesOfString:@"\\arccos" withString:@"arccos" options:0 range:NSMakeRange(0, s.length)];
     [s replaceOccurrencesOfString:@"\\arctan" withString:@"arctan" options:0 range:NSMakeRange(0, s.length)];
+    [s replaceOccurrencesOfString:@"\\sinh" withString:@"sinh" options:0 range:NSMakeRange(0, s.length)];
+    [s replaceOccurrencesOfString:@"\\cosh" withString:@"cosh" options:0 range:NSMakeRange(0, s.length)];
+    [s replaceOccurrencesOfString:@"\\tanh" withString:@"tanh" options:0 range:NSMakeRange(0, s.length)];
     [s replaceOccurrencesOfString:@"\\log" withString:@"log" options:0 range:NSMakeRange(0, s.length)];
     [s replaceOccurrencesOfString:@"\\ln" withString:@"ln" options:0 range:NSMakeRange(0, s.length)];
     [s replaceOccurrencesOfString:@"\\pi" withString:@"pi" options:0 range:NSMakeRange(0, s.length)];
 
-    // Exponents: ^{2} -> ^(2)
-    NSRegularExpression *expRegex = [NSRegularExpression regularExpressionWithPattern:@"\\^\\{([^\\{\\}]+)\\}" options:0 error:nil];
+    // Exponents: ^{...} -> ^(...) with balanced braces
     while (YES) {
-        NSTextCheckingResult *m = [expRegex firstMatchInString:s options:0 range:NSMakeRange(0, s.length)];
-        if (!m) break;
-        NSString *exp = [s substringWithRange:[m rangeAtIndex:1]];
-        NSString *repl = [NSString stringWithFormat:@"^(%@)", exp];
-        [s replaceCharactersInRange:m.range withString:repl];
+        NSRange expRange = [s rangeOfString:@"^{"];
+        if (expRange.location == NSNotFound) break;
+        NSRange contentRange = findBalancedBraces(s, expRange.location + 1);
+        if (contentRange.location == NSNotFound) break;
+        NSString *content = [s substringWithRange:contentRange];
+        NSInteger totalLen = (contentRange.location + contentRange.length + 1) - expRange.location;
+        NSString *repl = [NSString stringWithFormat:@"^(%@)", content];
+        [s replaceCharactersInRange:NSMakeRange(expRange.location, totalLen) withString:repl];
     }
 
     // Superscript unicode
     [s replaceOccurrencesOfString:@"²" withString:@"^2" options:0 range:NSMakeRange(0, s.length)];
     [s replaceOccurrencesOfString:@"³" withString:@"^3" options:0 range:NSMakeRange(0, s.length)];
 
-    // Insert implicit multiplications: e.g. 2x -> 2*x, 3( -> 3*(, )x -> )*x, )( -> )*(
+    NSSet *fnSet = [NSSet setWithObjects:@"sin", @"cos", @"tan", @"sinh", @"cosh", @"tanh",
+                    @"asin", @"acos", @"atan", @"arcsin", @"arccos", @"arctan",
+                    @"log", @"ln", @"sqrt", @"cbrt", @"abs", nil];
+
+    // Insert implicit multiplications: e.g. 2x -> 2*x, 3( -> 3*(, )x -> )*x, )( -> )*(, x( -> x*(
     NSMutableString *res = [NSMutableString string];
     for (NSInteger i = 0; i < s.length; i++) {
         unichar c = [s characterAtIndex:i];
@@ -625,9 +768,20 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
             BOOL nextLetter = (next >= 'a' && next <= 'z') || (next >= 'A' && next <= 'Z');
             BOOL nextOpen = (next == '(' || next == '[' || next == '{');
 
+            // Check if word ending at c is a function name
+            BOOL isEndOfFunction = NO;
+            if (isLetter && nextOpen) {
+                NSInteger start = i;
+                while (start > 0 && isalpha([s characterAtIndex:start - 1])) start--;
+                NSString *word = [[s substringWithRange:NSMakeRange(start, i - start + 1)] lowercaseString];
+                if ([fnSet containsObject:word]) {
+                    isEndOfFunction = YES;
+                }
+            }
+
             if ((isNum && (nextLetter || nextOpen)) ||
-                (isClose && (nextLetter || nextOpen || (next >= '0' && next <= '9')))) {
-                // Check that it's not a function name like 'sqrt', 'sin'
+                (isClose && (nextLetter || nextOpen || (next >= '0' && next <= '9'))) ||
+                (isLetter && nextOpen && !isEndOfFunction)) {
                 [res appendString:@"*"];
             }
         }
@@ -638,13 +792,13 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 
 + (NSString *)detectVariableInString:(NSString *)str
 {
-    // Search for single letters x, y, z, t, n, a, b, etc. (excluding e, pi, sin, cos, tan, log, ln, sqrt, abs)
-    NSSet *reserved = [NSSet setWithObjects:@"e", @"pi", @"sin", @"cos", @"tan", @"log", @"ln", @"sqrt", @"cbrt", @"abs", @"arcsin", @"arccos", @"arctan", nil];
+    NSSet *reserved = [NSSet setWithObjects:@"e", @"pi", @"sin", @"cos", @"tan", @"sinh", @"cosh", @"tanh",
+                       @"log", @"ln", @"sqrt", @"cbrt", @"abs", @"arcsin", @"arccos", @"arctan",
+                       @"asin", @"acos", @"atan", nil];
     NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"[a-zA-Z]" options:0 error:nil];
     NSArray *matches = [regex matchesInString:str options:0 range:NSMakeRange(0, str.length)];
     for (NSTextCheckingResult *m in matches) {
         NSString *letter = [str substringWithRange:m.range];
-        // Check if part of a word
         NSInteger start = m.range.location;
         while (start > 0 && isalpha([str characterAtIndex:start - 1])) start--;
         NSInteger end = m.range.location + m.range.length;
@@ -663,7 +817,16 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
     NSString *clean = [self cleanLatexToMath:problemLatex];
     if (!clean.length) return NO;
 
-    // Check if it's an equation or expression
+    // Calculus / unsupported symbols should be handled by LLM
+    if ([problemLatex rangeOfString:@"\\int"].location != NSNotFound ||
+        [problemLatex rangeOfString:@"\\sum"].location != NSNotFound ||
+        [problemLatex rangeOfString:@"\\lim"].location != NSNotFound ||
+        [problemLatex rangeOfString:@"\\frac{d}{dx}"].location != NSNotFound ||
+        [problemLatex rangeOfString:@"\\matrix"].location != NSNotFound ||
+        [problemLatex rangeOfString:@"\\pmatrix"].location != NSNotFound) {
+        return NO;
+    }
+
     NSArray *parts = [clean componentsSeparatedByString:@"="];
     if (parts.count <= 2) {
         return YES;
@@ -723,6 +886,9 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
                 return sol;
             }
         }
+    } else if (sides.count == 1 && varName) {
+        // User entered expression with variable (e.g. x^2 - 5x + 6) -> solve for roots (LHS = 0)
+        return [self solveEquationWithLHS:clean rhs:@"0" varName:varName originalLatex:problemLatex isCzech:isCzech error:error];
     }
 
     // Pure numeric expression evaluation
@@ -747,7 +913,6 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
     sol.summary = isCzech ? @"Vypočítaná hodnota výrazu" : @"Calculated expression value";
 
     NSString *solLatex = formatFractionOrDouble(result);
-    // If fraction, also append decimal if useful
     PMFraction f = doubleToFraction(result);
     if (f.den > 1 && fabs(result - round(result)) > 1e-9) {
         sol.solutionLatex = [NSString stringWithFormat:@"%@ = %.4f", solLatex, result];
@@ -757,7 +922,6 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 
     NSMutableArray *steps = [NSMutableArray array];
 
-    // Step 1: Order of operations
     PMStep *s1 = [[PMStep alloc] init];
     s1.stepNumber = 1;
     s1.title = isCzech ? @"Pořadí početních operací" : @"Order of Operations";
@@ -766,7 +930,6 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
                                @"Evaluate parentheses, powers/roots, multiplication/division, and addition/subtraction.";
     [steps addObject:s1];
 
-    // Step 2: Final evaluated answer
     PMStep *s2 = [[PMStep alloc] init];
     s2.stepNumber = 2;
     s2.title = isCzech ? @"Konečný výsledek" : @"Final Result";
@@ -799,9 +962,11 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         return nil;
     }
 
-    // P(x) = LHS - RHS = 0 => c2*x^2 + c1*x + c0 = 0
+    // P(x) = LHS - RHS = 0 => c4*x^4 + c3*x^3 + c2*x^2 + c1*x + c0 = 0
     PMPoly poly = PMPolySub(lPoly, rPoly);
 
+    double a4 = poly.c4;
+    double a3 = poly.c3;
     double a = poly.c2;
     double b = poly.c1;
     double c = poly.c0;
@@ -812,6 +977,103 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
     sol.problemLatex = problemLatex;
     sol.modelUsed = @"Offline Engine";
     NSMutableArray *steps = [NSMutableArray array];
+
+    // Check for pure 4th power equation: a4*x^4 + c = 0
+    if (fabs(a4) > 1e-9) {
+        if (fabs(a3) > 1e-9 || fabs(a) > 1e-9 || fabs(b) > 1e-9) {
+            if (error) *error = [NSError errorWithDomain:@"PMOfflineSolver" code:8 userInfo:@{NSLocalizedDescriptionKey: @"General quartic equations not supported offline"}];
+            return nil;
+        }
+        double val = -c / a4;
+        sol.summary = isCzech ? [NSString stringWithFormat:@"Rovnice 4. stupně pro %@", varName] :
+                                [NSString stringWithFormat:@"4th degree equation solved for %@", varName];
+
+        PMStep *s1 = [[PMStep alloc] init];
+        s1.stepNumber = 1;
+        s1.title = isCzech ? @"Zadání rovnice" : @"Original Equation";
+        s1.latex = problemLatex;
+        s1.explanation = isCzech ? @"Převedeme konstantu a vyřešíme odmocněním." : @"Isolate the power and take the fourth root.";
+        [steps addObject:s1];
+
+        PMStep *s2 = [[PMStep alloc] init];
+        s2.stepNumber = 2;
+        s2.title = isCzech ? @"Osamostatnění mocniny" : @"Isolate Power";
+        s2.latex = [NSString stringWithFormat:@"%@^4 = %@", varName, formatFractionOrDouble(val)];
+        s2.explanation = isCzech ? [NSString stringWithFormat:@"Vydělíme koeficientem: %@⁴ = %@.", varName, formatFractionOrDouble(val)] :
+                                   [NSString stringWithFormat:@"Divide by coefficient: %@⁴ = %@.", varName, formatFractionOrDouble(val)];
+        [steps addObject:s2];
+
+        if (val > 1e-9) {
+            double root = pow(val, 0.25);
+            NSString *rootStr = formatFractionOrDouble(root);
+            PMStep *s3 = [[PMStep alloc] init];
+            s3.stepNumber = 3;
+            s3.title = isCzech ? @"Čtvrtá odmocnina" : @"Fourth Root";
+            s3.latex = [NSString stringWithFormat:@"%@ = \\pm \\sqrt[4]{%@} = \\pm %@", varName, formatFractionOrDouble(val), rootStr];
+            s3.explanation = isCzech ? [NSString stringWithFormat:@"Jelikož exponent je sudý a hodnota kladná, rovnice má 2 reálné kořeny: ±%@.", rootStr] :
+                                       [NSString stringWithFormat:@"Since the exponent is even and value is positive, there are two real roots: ±%@.", rootStr];
+            [steps addObject:s3];
+            sol.solutionLatex = [NSString stringWithFormat:@"%@ = \\pm %@", varName, rootStr];
+        } else if (fabs(val) <= 1e-9) {
+            PMStep *s3 = [[PMStep alloc] init];
+            s3.stepNumber = 3;
+            s3.title = isCzech ? @"Nulový kořen" : @"Zero Root";
+            s3.latex = [NSString stringWithFormat:@"%@ = 0", varName];
+            s3.explanation = isCzech ? @"Jediným řešením je nula." : @"The only solution is zero.";
+            [steps addObject:s3];
+            sol.solutionLatex = [NSString stringWithFormat:@"%@ = 0", varName];
+        } else {
+            PMStep *s3 = [[PMStep alloc] init];
+            s3.stepNumber = 3;
+            s3.title = isCzech ? @"Žádné reálné řešení" : @"No Real Solution";
+            s3.latex = [NSString stringWithFormat:@"%@^4 < 0", varName];
+            s3.explanation = isCzech ? @"Sudá mocnina reálného čísla nemůže být záporná." : @"An even power of a real number cannot be negative.";
+            [steps addObject:s3];
+            sol.solutionLatex = isCzech ? @"\\text{Nemá reálné řešení}" : @"\\text{No real solution}";
+        }
+        sol.steps = steps;
+        return sol;
+    }
+
+    // Check for pure cubic equation: a3*x^3 + c = 0
+    if (fabs(a3) > 1e-9) {
+        if (fabs(a) > 1e-9 || fabs(b) > 1e-9) {
+            if (error) *error = [NSError errorWithDomain:@"PMOfflineSolver" code:9 userInfo:@{NSLocalizedDescriptionKey: @"General cubic equations not supported offline"}];
+            return nil;
+        }
+        double val = -c / a3;
+        sol.summary = isCzech ? [NSString stringWithFormat:@"Kubická rovnice pro %@", varName] :
+                                [NSString stringWithFormat:@"Cubic equation solved for %@", varName];
+
+        PMStep *s1 = [[PMStep alloc] init];
+        s1.stepNumber = 1;
+        s1.title = isCzech ? @"Zadání rovnice" : @"Original Equation";
+        s1.latex = problemLatex;
+        s1.explanation = isCzech ? @"Převedeme konstantu a vyřešíme třetí odmocninou." : @"Isolate the cubic term and take the cube root.";
+        [steps addObject:s1];
+
+        PMStep *s2 = [[PMStep alloc] init];
+        s2.stepNumber = 2;
+        s2.title = isCzech ? @"Osamostatnění mocniny" : @"Isolate Power";
+        s2.latex = [NSString stringWithFormat:@"%@^3 = %@", varName, formatFractionOrDouble(val)];
+        s2.explanation = isCzech ? [NSString stringWithFormat:@"Vydělíme koeficientem: %@³ = %@.", varName, formatFractionOrDouble(val)] :
+                                   [NSString stringWithFormat:@"Divide by coefficient: %@³ = %@.", varName, formatFractionOrDouble(val)];
+        [steps addObject:s2];
+
+        double root = (val >= 0) ? pow(val, 1.0 / 3.0) : -pow(-val, 1.0 / 3.0);
+        NSString *rootStr = formatFractionOrDouble(root);
+        PMStep *s3 = [[PMStep alloc] init];
+        s3.stepNumber = 3;
+        s3.title = isCzech ? @"Třetí odmocnina" : @"Cube Root";
+        s3.latex = [NSString stringWithFormat:@"%@ = \\sqrt[3]{%@} = %@", varName, formatFractionOrDouble(val), rootStr];
+        s3.explanation = isCzech ? [NSString stringWithFormat:@"Lichá odmocnina má pro každé reálné číslo právě 1 řešení: %@ = %@.", varName, rootStr] :
+                                   [NSString stringWithFormat:@"Odd root has exactly one real solution: %@ = %@.", varName, rootStr];
+        [steps addObject:s3];
+
+        sol.solutionLatex = [NSString stringWithFormat:@"%@ = %@", varName, rootStr];
+        sol.steps = steps;
+        return sol;
+    }
 
     if (fabs(a) < 1e-9) {
         // Linear Equation: b*x + c = 0 => b*x = -c
@@ -829,7 +1091,6 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 
         if (fabs(b) < 1e-9) {
             if (fabs(c) < 1e-9) {
-                // 0 = 0 -> All real numbers
                 sol.solutionLatex = isCzech ? [NSString stringWithFormat:@"%@ \\in \\mathbb{R}", varName] :
                                               [NSString stringWithFormat:@"%@ \\in \\mathbb{R} \\text{ (All real numbers)}", varName];
                 PMStep *s2 = [[PMStep alloc] init];
@@ -839,7 +1100,6 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
                 s2.explanation = isCzech ? @"Rovnost platí pro jakékoli reálné číslo." : @"The equation holds for all real numbers.";
                 [steps addObject:s2];
             } else {
-                // 0 = c -> No solution
                 sol.solutionLatex = isCzech ? @"\\text{Nemá řešení } (\\emptyset)" : @"\\text{No solution } (\\emptyset)";
                 PMStep *s2 = [[PMStep alloc] init];
                 s2.stepNumber = 2;
@@ -859,19 +1119,39 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
             PMStep *s2 = [[PMStep alloc] init];
             s2.stepNumber = 2;
             s2.title = isCzech ? @"Převod konstanty na pravou stranu" : @"Move Constant to Right Side";
-            s2.latex = [NSString stringWithFormat:@"%@%@ = %@", bStr, varName, negCStr];
-            s2.explanation = isCzech ? [NSString stringWithFormat:@"Odečteme nebo přičteme konstantu k oběma stranám: %@%@ = %@.", bStr, varName, negCStr] :
-                                       [NSString stringWithFormat:@"Isolate the variable term on the left side: %@%@ = %@.", bStr, varName, negCStr];
-            [steps addObject:s2];
 
-            // Step 3: Divide by coefficient of x
-            PMStep *s3 = [[PMStep alloc] init];
-            s3.stepNumber = 3;
-            s3.title = isCzech ? @"Vydělení koeficientem" : @"Divide by Coefficient";
-            s3.latex = [NSString stringWithFormat:@"%@ = \\frac{%@}{%@} = %@", varName, negCStr, bStr, ansStr];
-            s3.explanation = isCzech ? [NSString stringWithFormat:@"Vydělíme obě strany koeficientem %@.", bStr] :
-                                       [NSString stringWithFormat:@"Divide both sides by %@ to find %@.", bStr, varName];
-            [steps addObject:s3];
+            if (fabs(b - 1.0) < 1e-9) {
+                s2.latex = [NSString stringWithFormat:@"%@ = %@", varName, negCStr];
+                s2.explanation = isCzech ? [NSString stringWithFormat:@"Převodem konstanty získáme řešení: %@ = %@.", varName, ansStr] :
+                                           [NSString stringWithFormat:@"Isolating the variable gives: %@ = %@.", varName, ansStr];
+                [steps addObject:s2];
+            } else if (fabs(b - (-1.0)) < 1e-9) {
+                s2.latex = [NSString stringWithFormat:@"-%@ = %@", varName, negCStr];
+                s2.explanation = isCzech ? [NSString stringWithFormat:@"Převodem konstanty získáme: -%@ = %@.", varName, negCStr] :
+                                           [NSString stringWithFormat:@"Moving the constant gives: -%@ = %@.", varName, negCStr];
+                [steps addObject:s2];
+
+                PMStep *s3 = [[PMStep alloc] init];
+                s3.stepNumber = 3;
+                s3.title = isCzech ? @"Vynásobení (-1)" : @"Multiply by (-1)";
+                s3.latex = [NSString stringWithFormat:@"%@ = %@", varName, ansStr];
+                s3.explanation = isCzech ? [NSString stringWithFormat:@"Vynásobíme obě strany (-1): %@ = %@.", varName, ansStr] :
+                                           [NSString stringWithFormat:@"Multiply both sides by -1: %@ = %@.", varName, ansStr];
+                [steps addObject:s3];
+            } else {
+                s2.latex = [NSString stringWithFormat:@"%@%@ = %@", bStr, varName, negCStr];
+                s2.explanation = isCzech ? [NSString stringWithFormat:@"Převodem konstanty získáme: %@%@ = %@.", bStr, varName, negCStr] :
+                                           [NSString stringWithFormat:@"Isolate the variable term: %@%@ = %@.", bStr, varName, negCStr];
+                [steps addObject:s2];
+
+                PMStep *s3 = [[PMStep alloc] init];
+                s3.stepNumber = 3;
+                s3.title = isCzech ? @"Vydělení koeficientem" : @"Divide by Coefficient";
+                s3.latex = [NSString stringWithFormat:@"%@ = \\frac{%@}{%@} = %@", varName, negCStr, bStr, ansStr];
+                s3.explanation = isCzech ? [NSString stringWithFormat:@"Vydělíme obě strany koeficientem %@: %@ = %@.", bStr, varName, ansStr] :
+                                           [NSString stringWithFormat:@"Divide both sides by %@: %@ = %@.", bStr, varName, ansStr];
+                [steps addObject:s3];
+            }
 
             sol.solutionLatex = [NSString stringWithFormat:@"%@ = %@", varName, ansStr];
         }
@@ -884,10 +1164,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         PMStep *s1 = [[PMStep alloc] init];
         s1.stepNumber = 1;
         s1.title = isCzech ? @"Základní tvar kvadratické rovnice" : @"Standard Quadratic Form";
-        s1.latex = [NSString stringWithFormat:@"%@%@^2 %@ %@%@ %@ %@ = 0",
-                    formatFractionOrDouble(a), varName,
-                    b >= 0 ? @"+" : @"-", formatFractionOrDouble(fabs(b)), varName,
-                    c >= 0 ? @"+" : @"-", formatFractionOrDouble(fabs(c))];
+        s1.latex = formatPolyEquation(a, b, c, varName);
         s1.explanation = isCzech ? [NSString stringWithFormat:@"Převedeme rovnici do tvaru ax² + bx + c = 0: a = %@, b = %@, c = %@.", formatFractionOrDouble(a), formatFractionOrDouble(b), formatFractionOrDouble(c)] :
                                    [NSString stringWithFormat:@"Write in standard form ax² + bx + c = 0: a = %@, b = %@, c = %@.", formatFractionOrDouble(a), formatFractionOrDouble(b), formatFractionOrDouble(c)];
         [steps addObject:s1];
@@ -949,16 +1226,31 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
             NSString *realStr = formatFractionOrDouble(realPart);
             NSString *imagStr = formatFractionOrDouble(fabs(imagPart));
 
+            NSString *complexRootsLatex;
+            if (fabs(realPart) < 1e-9) {
+                if (fabs(fabs(imagPart) - 1.0) < 1e-9) {
+                    complexRootsLatex = @"\\pm i";
+                } else {
+                    complexRootsLatex = [NSString stringWithFormat:@"\\pm %@i", imagStr];
+                }
+            } else {
+                if (fabs(fabs(imagPart) - 1.0) < 1e-9) {
+                    complexRootsLatex = [NSString stringWithFormat:@"%@ \\pm i", realStr];
+                } else {
+                    complexRootsLatex = [NSString stringWithFormat:@"%@ \\pm %@i", realStr, imagStr];
+                }
+            }
+
             PMStep *s3 = [[PMStep alloc] init];
             s3.stepNumber = 3;
             s3.title = isCzech ? @"Komplexní kořeny (D < 0)" : @"Complex Conjugate Roots (D < 0)";
-            s3.latex = [NSString stringWithFormat:@"%@ = \\frac{-b \\pm i\\sqrt{|D|}}{2a} = %@ \\pm %@i",
-                        varName, realStr, imagStr];
+            s3.latex = [NSString stringWithFormat:@"%@ = \\frac{-b \\pm i\\sqrt{|D|}}{2a} = %@",
+                        varName, complexRootsLatex];
             s3.explanation = isCzech ? @"Jelikož D < 0, rovnice nemá reálné řešení, ale má dva komplexně sdružené kořeny." :
                                        @"Since D < 0, the equation has no real roots, but two complex conjugate roots.";
             [steps addObject:s3];
 
-            sol.solutionLatex = [NSString stringWithFormat:@"%@ = %@ \\pm %@i", varName, realStr, imagStr];
+            sol.solutionLatex = [NSString stringWithFormat:@"%@ = %@", varName, complexRootsLatex];
         }
     }
 
