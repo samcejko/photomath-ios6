@@ -1,0 +1,11 @@
+{
+  "lib/MTMathListIndex.m": "f1aa638527a8d82094ae13a5ef51fc51a9055f53ffdd383f0d608f19cc1ccb6b",
+  "lib/MTMathList.m": "43f528b01926f284a1ed54c1bc82b5622ea181fcbb5a3dd87887d46d50d85586",
+  "lib/MTMathListBuilder.m": "86b1ffadf8d231f91335c41d387e0ee74088daef21f989bfd801c61895f8488e",
+  "lib/MTMathAtomFactory.m": "5fc362d3440a91ec2d217768394d5972fa43465fad9861a4e7ffa960bd259a1a",
+  "render/MTFontManager.m": "0dacb82a009088c57d96af0ebb9b8b996e47580ec7374ade3327bd687de34d99",
+  "render/internal/MTFontMathTable.m": "1962a7993998897940715889bdc000172f81d13c91954637738ccad243197f71",
+  "render/MTMathListDisplay.m": "40d877967b1893fb1412481d4814f3816e08733102c92c20684c5c21f6229bcc",
+  "render/internal/MTTypesetter.m": "27faa591cd89d544cfc2bbf40671d2a40610e91769551439f1157328fb5f52ca",
+  "render/MTMathUILabel.m": "e1029779c858bb0f61b7932f8b2e16d38766c78d43b8bd203887047760783496"
+}

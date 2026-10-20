@@ -120,6 +120,7 @@ jobs:
           curl -sSL https://github.com/kostub/iosMath/archive/refs/tags/0.9.5.tar.gz -o /tmp/iosmath.tar.gz
           rm -rf vendor/iosMath && mkdir -p vendor/iosMath
           tar -xzf /tmp/iosmath.tar.gz -C vendor/iosMath --strip-components=1
+          python3 tools/patch_iosmath_legacy.py vendor/iosMath
           rm -rf Resources/mathFonts.bundle && mkdir -p Resources/mathFonts.bundle
           cp vendor/iosMath/fonts/latinmodern-math.otf vendor/iosMath/fonts/latinmodern-math.plist Resources/mathFonts.bundle/
           echo "iosMath sources: $(find vendor/iosMath/iosMath -name '*.m' | wc -l)"

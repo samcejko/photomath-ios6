@@ -45,7 +45,7 @@ ShutterCalc_CFLAGS := -Isrc -Isrc/Net -Isrc/Model -Isrc/Theme -Isrc/UI -Isrc/Uti
                     -Wno-deprecated-declarations -Wno-unknown-warning-option \
                     -Wno-nullability-completeness -Wno-nullability-completeness-on-arrays -Wno-error
 
-ShutterCalc_OBJCFLAGS := -fobjc-arc -Wunguarded-availability -include UIKit/UIKit.h
+ShutterCalc_OBJCFLAGS := -fobjc-arc -Wunguarded-availability -Werror=unguarded-availability -include UIKit/UIKit.h
 
 ShutterCalc_LDFLAGS := -lz
 
