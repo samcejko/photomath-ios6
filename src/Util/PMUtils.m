@@ -197,13 +197,13 @@ static const char kBase64Table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr
 + (NSString *)documentsPath
 {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    return paths.count ? paths[0] : NSTemporaryDirectory();
+    return paths.count ? [paths objectAtIndex:0] : NSTemporaryDirectory();
 }
 
 + (NSString *)cachesPath
 {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-    NSString *p = paths.count ? paths[0] : [self documentsPath];
+    NSString *p = paths.count ? [paths objectAtIndex:0] : [self documentsPath];
     [[NSFileManager defaultManager] createDirectoryAtPath:p withIntermediateDirectories:YES attributes:nil error:NULL];
     return p;
 }
