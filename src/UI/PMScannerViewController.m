@@ -201,8 +201,17 @@
 
     self.previewLayer = [AVCaptureVideoPreviewLayer layerWithSession:self.captureSession];
     self.previewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
-    if ([self.previewLayer.connection isVideoOrientationSupported]) {
-        self.previewLayer.connection.videoOrientation = AVCaptureVideoOrientationPortrait;
+    if ([self.previewLayer respondsToSelector:@selector(connection)]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
+        if ([self.previewLayer.connection isVideoOrientationSupported]) {
+            self.previewLayer.connection.videoOrientation = AVCaptureVideoOrientationPortrait;
+        }
+#pragma clang diagnostic pop
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
+    } else if ([self.previewLayer isOrientationSupported]) {
+        self.previewLayer.orientation = AVCaptureVideoOrientationPortrait;
+#endif
     }
     self.previewLayer.frame = self.view.bounds;
     [self.view.layer addSublayer:self.previewLayer];
