@@ -108,8 +108,8 @@ static NSString * const kFallbackKey     = @"apiKey.fallback";
 - (NSString *)loadKeyFromKeychain
 {
     NSMutableDictionary *q = [[self keychainQuery] mutableCopy];
-    q[(__bridge id)kSecReturnData] = (__bridge id)kCFBooleanTrue;
-    q[(__bridge id)kSecMatchLimit] = (__bridge id)kSecMatchLimitOne;
+    [q setObject:(__bridge id)kCFBooleanTrue forKey:(__bridge id)kSecReturnData];
+    [q setObject:(__bridge id)kSecMatchLimitOne forKey:(__bridge id)kSecMatchLimit];
     CFTypeRef result = NULL;
     OSStatus st = SecItemCopyMatching((__bridge CFDictionaryRef)q, &result);
     if (st == errSecSuccess && result) {
@@ -118,7 +118,7 @@ static NSString * const kFallbackKey     = @"apiKey.fallback";
     }
     // Also check older service name if upgraded
     NSMutableDictionary *qOld = [q mutableCopy];
-    qOld[(__bridge id)kSecAttrService] = kKeychainServiceOld;
+    [qOld setObject:kKeychainServiceOld forKey:(__bridge id)kSecAttrService];
     st = SecItemCopyMatching((__bridge CFDictionaryRef)qOld, &result);
     if (st == errSecSuccess && result) {
         NSData *d = (__bridge_transfer NSData *)result;
@@ -132,7 +132,7 @@ static NSString * const kFallbackKey     = @"apiKey.fallback";
     SecItemDelete((__bridge CFDictionaryRef)[self keychainQuery]);
     if (!key.length) return YES;
     NSMutableDictionary *q = [[self keychainQuery] mutableCopy];
-    q[(__bridge id)kSecValueData] = [key dataUsingEncoding:NSUTF8StringEncoding];
+    [q setObject:[key dataUsingEncoding:NSUTF8StringEncoding] forKey:(__bridge id)kSecValueData];
     OSStatus st = SecItemAdd((__bridge CFDictionaryRef)q, NULL);
     return st == errSecSuccess;
 }
