@@ -226,7 +226,7 @@ enum {
         if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:CellVal1];
         if (indexPath.row == 0) {
             cell.textLabel.text = L(@"Version");
-            NSString *v = [[NSBundle mainBundle] infoDictionary][@"CFBundleShortVersionString"] ?: @"1.0.3";
+            NSString *v = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"] ?: @"1.0.3";
             cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ (iOS 6)", v];
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
             cell.accessoryType = UITableViewCellAccessoryNone;

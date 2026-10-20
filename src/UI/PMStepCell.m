@@ -86,7 +86,7 @@
     CGFloat titleW = cardW - titleX - 12.0f;
     CGSize titleSz = [self.titleLabel.text sizeWithFont:self.titleLabel.font
                                       constrainedToSize:CGSizeMake(titleW, CGFLOAT_MAX)
-                                          lineBreakMode:NSLineBreakByWordWrapping];
+                                          lineBreakMode:UILineBreakModeWordWrap];
     self.titleLabel.frame = CGRectMake(titleX, 14, titleW, titleSz.height);
 
     CGFloat curY = MAX(CGRectGetMaxY(self.badgeView.frame), CGRectGetMaxY(self.titleLabel.frame)) + 8.0f;
@@ -103,7 +103,7 @@
     if (self.explanationLabel.text.length) {
         CGSize expSz = [self.explanationLabel.text sizeWithFont:self.explanationLabel.font
                                               constrainedToSize:CGSizeMake(cardW - 24.0f, CGFLOAT_MAX)
-                                                  lineBreakMode:NSLineBreakByWordWrapping];
+                                                  lineBreakMode:UILineBreakModeWordWrap];
         self.explanationLabel.frame = CGRectMake(12, curY, cardW - 24.0f, expSz.height);
         self.explanationLabel.hidden = NO;
         curY = CGRectGetMaxY(self.explanationLabel.frame) + 12.0f;
@@ -121,7 +121,7 @@
     CGFloat titleW = cardW - 44.0f;
     CGSize titleSz = [step.title sizeWithFont:[UIFont boldSystemFontOfSize:14.0f]
                             constrainedToSize:CGSizeMake(titleW, CGFLOAT_MAX)
-                                lineBreakMode:NSLineBreakByWordWrapping];
+                                lineBreakMode:UILineBreakModeWordWrap];
 
     CGFloat h = 14.0f + titleSz.height + 8.0f;
     if (h < 40.0f) h = 40.0f;
@@ -142,7 +142,7 @@
     if (step.explanation.length) {
         CGSize expSz = [step.explanation sizeWithFont:[UIFont systemFontOfSize:13.0f]
                                     constrainedToSize:CGSizeMake(cardW - 24.0f, CGFLOAT_MAX)
-                                        lineBreakMode:NSLineBreakByWordWrapping];
+                                        lineBreakMode:UILineBreakModeWordWrap];
         h += expSz.height + 12.0f;
     } else {
         h += 8.0f;

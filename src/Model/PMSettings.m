@@ -51,7 +51,7 @@ static NSString * const kFallbackKey     = @"apiKey.fallback";
     for (NSString *p in paths) {
         if ([[NSFileManager defaultManager] fileExistsAtPath:p]) {
             NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:p];
-            id k = dict[@"apiKey.fallback"] ?: dict[@"apiKey"];
+            id k = [dict objectForKey:@"apiKey.fallback"] ?: [dict objectForKey:@"apiKey"];
             if ([k isKindOfClass:[NSString class]]) {
                 NSString *clean = [k stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
                 if (clean.length > 0) return clean;

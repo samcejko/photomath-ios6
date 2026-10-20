@@ -1,3 +1,4 @@
+#import "PMLegacyCollections.h"
 #import "PMModelCatalog.h"
 #import "PMOpenRouterClient.h"
 #import "PMSettings.h"
@@ -54,7 +55,7 @@ static const NSTimeInterval kStaleInterval = 12 * 60 * 60; // 12 hours
         PMModelInfo *m = [PMModelInfo modelWithJSON:item];
         if (!m) continue;
         [list addObject:m];
-        map[m.modelId] = m;
+        PMSetDictionaryObject(map, m.modelId, m);
     }
     [list sortUsingComparator:^NSComparisonResult(PMModelInfo *a, PMModelInfo *b) {
         return [[a displayName] compare:[b displayName] options:NSCaseInsensitiveSearch];
@@ -68,10 +69,10 @@ static const NSTimeInterval kStaleInterval = 12 * 60 * 60; // 12 hours
     NSData *data = [NSData dataWithContentsOfFile:[self cacheFile]];
     id json = [PMUtils JSONObjectFromData:data];
     if ([json isKindOfClass:[NSDictionary class]]) {
-        NSArray *arr = json[@"data"];
+        NSArray *arr = [json objectForKey:@"data"];
         if ([arr isKindOfClass:[NSArray class]]) {
             [self setModelsFromJSONArray:arr];
-            NSNumber *ts = json[@"updated"];
+            NSNumber *ts = [json objectForKey:@"updated"];
             if ([ts isKindOfClass:[NSNumber class]]) {
                 self.lastUpdated = [NSDate dateWithTimeIntervalSince1970:[ts doubleValue]];
             }
@@ -131,7 +132,7 @@ static const NSTimeInterval kStaleInterval = 12 * 60 * 60; // 12 hours
 - (PMModelInfo *)modelWithId:(NSString *)modelId
 {
     if (!modelId.length) return nil;
-    return self.byId[modelId];
+    return [self.byId objectForKey:modelId];
 }
 
 - (NSArray *)validVisionModels
@@ -201,7 +202,7 @@ static const NSTimeInterval kStaleInterval = 12 * 60 * 60; // 12 hours
     }
 
     if (!first && allVision.count > 0) {
-        first = allVision[0];
+        first = [allVision objectAtIndex:0];
         [chain addObject:first];
     }
 
@@ -219,7 +220,7 @@ static const NSTimeInterval kStaleInterval = 12 * 60 * 60; // 12 hours
 - (PMModelInfo *)bestVisionModel
 {
     NSArray *models = [self validVisionModels];
-    return models.count ? models[0] : nil;
+    return models.count ? [models objectAtIndex:0] : nil;
 }
 
 @end

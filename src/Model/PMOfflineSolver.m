@@ -876,8 +876,8 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     NSString *varName = [self detectVariableInString:clean];
 
     if (sides.count == 2) {
-        NSString *lhsStr = [sides[0] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-        NSString *rhsStr = [sides[1] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+        NSString *lhsStr = [[sides objectAtIndex:0] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+        NSString *rhsStr = [[sides objectAtIndex:1] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 
         // If RHS is empty or just '?', it's an evaluation request
         if (!rhsStr.length || [rhsStr isEqualToString:@"?"]) {

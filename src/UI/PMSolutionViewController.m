@@ -151,7 +151,7 @@
     self.modelLabel.textColor = isDark ? [UIColor colorWithWhite:0.5f alpha:1.0f] : [UIColor colorWithWhite:0.45f alpha:1.0f];
     self.modelLabel.text = [NSString stringWithFormat:@"%@: %@", L(@"Solved by model"), self.solution.modelUsed.length ? self.solution.modelUsed : @"OpenRouter"];
     self.modelLabel.backgroundColor = [UIColor clearColor];
-    self.modelLabel.textAlignment = NSTextAlignmentCenter;
+    self.modelLabel.textAlignment = UITextAlignmentCenter;
     [footer addSubview:self.modelLabel];
 
     self.clipboardButton = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -212,7 +212,7 @@
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    PMStep *step = self.solution.steps[indexPath.row];
+    PMStep *step = [self.solution.steps objectAtIndex:indexPath.row];
     CGFloat w = tableView.bounds.size.width;
     if (w <= 0) w = self.view.bounds.size.width;
     if (w <= 0) w = 320.0f;
@@ -226,7 +226,7 @@
     if (!cell) {
         cell = [[PMStepCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellId];
     }
-    PMStep *step = self.solution.steps[indexPath.row];
+    PMStep *step = [self.solution.steps objectAtIndex:indexPath.row];
     [cell configureWithStep:step isDark:[PMSettings shared].darkTheme];
     return cell;
 }

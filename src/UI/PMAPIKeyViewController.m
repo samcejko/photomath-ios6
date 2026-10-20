@@ -82,7 +82,7 @@
 
     self.statusLabel = [[UILabel alloc] initWithFrame:CGRectZero];
     self.statusLabel.font = [UIFont systemFontOfSize:13.0f];
-    self.statusLabel.textAlignment = NSTextAlignmentCenter;
+    self.statusLabel.textAlignment = UITextAlignmentCenter;
     self.statusLabel.numberOfLines = 0;
     self.statusLabel.backgroundColor = [UIColor clearColor];
     [self.scrollView addSubview:self.statusLabel];
@@ -124,7 +124,7 @@
 
     CGSize introSz = [self.introLabel.text sizeWithFont:self.introLabel.font
                                       constrainedToSize:CGSizeMake(fieldW, CGFLOAT_MAX)
-                                          lineBreakMode:NSLineBreakByWordWrapping];
+                                          lineBreakMode:UILineBreakModeWordWrap];
     self.introLabel.frame = CGRectMake(margin, 16.0f, fieldW, MAX(36.0f, introSz.height));
 
     CGFloat curY = CGRectGetMaxY(self.introLabel.frame) + 12.0f;
@@ -155,7 +155,7 @@
 
     CGSize statusSz = [self.statusLabel.text sizeWithFont:self.statusLabel.font
                                         constrainedToSize:CGSizeMake(fieldW, CGFLOAT_MAX)
-                                            lineBreakMode:NSLineBreakByWordWrapping];
+                                            lineBreakMode:UILineBreakModeWordWrap];
     self.statusLabel.frame = CGRectMake(margin, curY, fieldW, MAX(44.0f, statusSz.height));
     curY = CGRectGetMaxY(self.statusLabel.frame) + 20.0f;
 
@@ -170,7 +170,7 @@
 - (void)keyboardWillShow:(NSNotification *)note
 {
     NSDictionary *userInfo = note.userInfo;
-    CGRect kbFrame = [userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    CGRect kbFrame = [[userInfo objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
     CGRect kbWindow = [self.view.window convertRect:kbFrame fromWindow:nil];
     CGRect kbView = [self.view convertRect:kbWindow fromView:nil];
     CGFloat overlap = CGRectGetMaxY(self.view.bounds) - kbView.origin.y;
@@ -244,8 +244,8 @@
                 self.statusLabel.text = [NSString stringWithFormat:L(@"Invalid key: %@"), error.localizedDescription];
             } else {
                 [PMSettings shared].apiKey = k;
-                NSNumber *limit = info[@"limit"];
-                NSNumber *usage = info[@"usage"];
+                NSNumber *limit = [info objectForKey:@"limit"];
+                NSNumber *usage = [info objectForKey:@"usage"];
                 self.statusLabel.textColor = [UIColor colorWithRed:0.2f green:0.6f blue:0.2f alpha:1.0f];
                 if (limit && usage) {
                     double rem = [limit doubleValue] - [usage doubleValue];
@@ -266,8 +266,8 @@
     [[PMOpenRouterClient shared] fetchKeyInfoWithKey:k completion:^(NSDictionary *info, NSError *error) {
         PMMain(^{
             if (!error && info) {
-                NSNumber *limit = info[@"limit"];
-                NSNumber *usage = info[@"usage"];
+                NSNumber *limit = [info objectForKey:@"limit"];
+                NSNumber *usage = [info objectForKey:@"usage"];
                 if (limit && usage) {
                     double rem = [limit doubleValue] - [usage doubleValue];
                     self.statusLabel.textColor = [UIColor colorWithRed:0.2f green:0.6f blue:0.2f alpha:1.0f];

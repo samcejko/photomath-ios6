@@ -1,3 +1,4 @@
+#import "PMLegacyCollections.h"
 #include <limits.h>
 #import "PMHTTPRequest.h"
 #import "PMTLSSocket.h"
@@ -85,7 +86,7 @@ typedef NS_ENUM(NSInteger, PMChunkState) {
     BOOL hasContentType = NO;
     for (NSString *key in self.headers) {
         if ([[key lowercaseString] isEqualToString:@"content-type"]) hasContentType = YES;
-        NSString *value = [[self.headers[key] description] stringByReplacingOccurrencesOfString:@"\n" withString:@" "];
+        NSString *value = [[[self.headers objectForKey:key] description] stringByReplacingOccurrencesOfString:@"\n" withString:@" "];
         [s appendFormat:@"%@: %@\r\n", key, value];
     }
     if (self.body) {
@@ -231,9 +232,9 @@ typedef NS_ENUM(NSInteger, PMChunkState) {
         if (error) *error = PMMakeError(PMErrorBadResponse, L(@"The server sent an invalid response."));
         return NO;
     }
-    NSString *statusLine = lines[0];
+    NSString *statusLine = [lines objectAtIndex:0];
     NSArray *parts = [statusLine componentsSeparatedByString:@" "];
-    NSInteger status = parts.count >= 2 ? [parts[1] integerValue] : 0;
+    NSInteger status = parts.count >= 2 ? [[parts objectAtIndex:1] integerValue] : 0;
     if (status <= 0) {
         NSString *trunc = statusLine.length > 80 ? [statusLine substringToIndex:80] : statusLine;
         if (error) *error = PMMakeError(PMErrorBadResponse, [NSString stringWithFormat:L(@"Unexpected response: %@"), trunc]);
@@ -241,19 +242,19 @@ typedef NS_ENUM(NSInteger, PMChunkState) {
     }
     NSMutableDictionary *headers = [NSMutableDictionary dictionary];
     for (NSUInteger i = 1; i < lines.count; i++) {
-        NSString *line = lines[i];
+        NSString *line = [lines objectAtIndex:i];
         NSRange colon = [line rangeOfString:@":"];
         if (colon.location == NSNotFound) continue;
         NSString *name = [[[line substringToIndex:colon.location] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]] lowercaseString];
         NSString *value = [[line substringFromIndex:colon.location + 1] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-        NSString *existing = headers[name];
-        headers[name] = existing ? [NSString stringWithFormat:@"%@, %@", existing, value] : value;
+        NSString *existing = [headers objectForKey:name];
+        PMSetDictionaryObject(headers, name, existing ? [NSString stringWithFormat:@"%@, %@", existing, value] : value);
     }
     self.statusCode = status;
     self.responseHeaders = headers;
-    NSString *te = [headers[@"transfer-encoding"] lowercaseString];
+    NSString *te = [[headers objectForKey:@"transfer-encoding"] lowercaseString];
     self.chunked = te && [te rangeOfString:@"chunked"].location != NSNotFound;
-    NSString *cl = headers[@"content-length"];
+    NSString *cl = [headers objectForKey:@"content-length"];
     self.contentLength = (cl && !self.chunked) ? [cl longLongValue] : -1;
     return YES;
 }

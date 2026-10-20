@@ -46,7 +46,7 @@
     self.emptyLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 120, self.view.bounds.size.width - 40, 60)];
     self.emptyLabel.text = L(@"No solved problems yet.\nScan an equation with the camera or use the math editor.");
     self.emptyLabel.numberOfLines = 2;
-    self.emptyLabel.textAlignment = NSTextAlignmentCenter;
+    self.emptyLabel.textAlignment = UITextAlignmentCenter;
     self.emptyLabel.textColor = [UIColor grayColor];
     self.emptyLabel.font = [UIFont systemFontOfSize:14.0f];
     self.emptyLabel.backgroundColor = [UIColor clearColor];
@@ -107,7 +107,7 @@
         cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     }
 
-    PMMathSolution *sol = [PMHistoryStore shared].solutions[indexPath.row];
+    PMMathSolution *sol = [[PMHistoryStore shared].solutions objectAtIndex:indexPath.row];
     BOOL isDark = [PMSettings shared].darkTheme;
 
     cell.textLabel.text = sol.problemLatex.length ? sol.problemLatex : @"(Equation)";
@@ -133,7 +133,7 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    PMMathSolution *sol = [PMHistoryStore shared].solutions[indexPath.row];
+    PMMathSolution *sol = [[PMHistoryStore shared].solutions objectAtIndex:indexPath.row];
     PMSolutionViewController *svc = [[PMSolutionViewController alloc] initWithSolution:sol];
     [self.navigationController pushViewController:svc animated:YES];
 }
@@ -141,7 +141,7 @@
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
 {
     if (editingStyle == UITableViewCellEditingStyleDelete) {
-        PMMathSolution *sol = [PMHistoryStore shared].solutions[indexPath.row];
+        PMMathSolution *sol = [[PMHistoryStore shared].solutions objectAtIndex:indexPath.row];
         [[PMHistoryStore shared] removeSolution:sol];
     }
 }

@@ -1,3 +1,4 @@
+#import "PMLegacyCollections.h"
 #import "PMCommon.h"
 #import "PMMathSolution.h"
 #import "PMUtils.h"
@@ -8,11 +9,11 @@
 {
     if (![json isKindOfClass:[NSDictionary class]]) return nil;
     PMStep *s = [[PMStep alloc] init];
-    NSNumber *num = json[@"step_number"] ?: json[@"step"];
+    NSNumber *num = [json objectForKey:@"step_number"] ?: [json objectForKey:@"step"];
     s.stepNumber = [num isKindOfClass:[NSNumber class]] ? [num integerValue] : index;
-    s.title = json[@"title"] ?: [NSString stringWithFormat:@"Step %ld", (long)s.stepNumber];
-    s.latex = json[@"latex"] ?: json[@"expression"] ?: @"";
-    s.explanation = json[@"explanation"] ?: json[@"description"] ?: @"";
+    s.title = [json objectForKey:@"title"] ?: [NSString stringWithFormat:@"Step %ld", (long)s.stepNumber];
+    s.latex = [json objectForKey:@"latex"] ?: [json objectForKey:@"expression"] ?: @"";
+    s.explanation = [json objectForKey:@"explanation"] ?: [json objectForKey:@"description"] ?: @"";
     return s;
 }
 
@@ -38,11 +39,11 @@
     sol.date = [NSDate date];
     sol.modelUsed = model ?: @"";
 
-    sol.problemLatex = json[@"problem_latex"] ?: json[@"problem"] ?: json[@"equation"] ?: @"";
-    sol.solutionLatex = json[@"solution_latex"] ?: json[@"solution"] ?: json[@"result"] ?: json[@"answer"] ?: @"";
-    sol.summary = json[@"summary"] ?: @"";
+    sol.problemLatex = [json objectForKey:@"problem_latex"] ?: [json objectForKey:@"problem"] ?: [json objectForKey:@"equation"] ?: @"";
+    sol.solutionLatex = [json objectForKey:@"solution_latex"] ?: [json objectForKey:@"solution"] ?: [json objectForKey:@"result"] ?: [json objectForKey:@"answer"] ?: @"";
+    sol.summary = [json objectForKey:@"summary"] ?: @"";
 
-    NSArray *rawSteps = json[@"steps"];
+    NSArray *rawSteps = [json objectForKey:@"steps"];
     NSMutableArray *steps = [NSMutableArray array];
     if ([rawSteps isKindOfClass:[NSArray class]]) {
         NSInteger idx = 1;
@@ -68,16 +69,16 @@
 {
     if (![dict isKindOfClass:[NSDictionary class]]) return nil;
     PMMathSolution *sol = [[PMMathSolution alloc] init];
-    sol.solutionId = dict[@"id"] ?: @"";
-    NSNumber *ts = dict[@"date"];
+    sol.solutionId = [dict objectForKey:@"id"] ?: @"";
+    NSNumber *ts = [dict objectForKey:@"date"];
     sol.date = [ts isKindOfClass:[NSNumber class]] ? [NSDate dateWithTimeIntervalSince1970:[ts doubleValue]] : [NSDate date];
-    sol.problemLatex = dict[@"problem_latex"] ?: @"";
-    sol.solutionLatex = dict[@"solution_latex"] ?: @"";
-    sol.summary = dict[@"summary"] ?: @"";
-    sol.modelUsed = dict[@"model_used"] ?: @"";
-    sol.imagePath = dict[@"image_path"];
+    sol.problemLatex = [dict objectForKey:@"problem_latex"] ?: @"";
+    sol.solutionLatex = [dict objectForKey:@"solution_latex"] ?: @"";
+    sol.summary = [dict objectForKey:@"summary"] ?: @"";
+    sol.modelUsed = [dict objectForKey:@"model_used"] ?: @"";
+    sol.imagePath = [dict objectForKey:@"image_path"];
 
-    NSArray *rawSteps = dict[@"steps"];
+    NSArray *rawSteps = [dict objectForKey:@"steps"];
     NSMutableArray *steps = [NSMutableArray array];
     if ([rawSteps isKindOfClass:[NSArray class]]) {
         NSInteger idx = 1;
@@ -97,14 +98,14 @@
         [arr addObject:[s toJSON]];
     }
     NSMutableDictionary *d = [NSMutableDictionary dictionary];
-    d[@"id"] = self.solutionId ?: @"";
-    d[@"date"] = @([self.date timeIntervalSince1970]);
-    d[@"problem_latex"] = self.problemLatex ?: @"";
-    d[@"solution_latex"] = self.solutionLatex ?: @"";
-    d[@"summary"] = self.summary ?: @"";
-    d[@"model_used"] = self.modelUsed ?: @"";
-    if (self.imagePath) d[@"image_path"] = self.imagePath;
-    d[@"steps"] = arr;
+    PMSetDictionaryObject(d, @"id", self.solutionId ?: @"");
+    PMSetDictionaryObject(d, @"date", @([self.date timeIntervalSince1970]));
+    PMSetDictionaryObject(d, @"problem_latex", self.problemLatex ?: @"");
+    PMSetDictionaryObject(d, @"solution_latex", self.solutionLatex ?: @"");
+    PMSetDictionaryObject(d, @"summary", self.summary ?: @"");
+    PMSetDictionaryObject(d, @"model_used", self.modelUsed ?: @"");
+    if (self.imagePath) PMSetDictionaryObject(d, @"image_path", self.imagePath);
+    PMSetDictionaryObject(d, @"steps", arr);
     return d;
 }
 

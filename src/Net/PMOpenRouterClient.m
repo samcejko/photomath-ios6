@@ -1,3 +1,4 @@
+#import "PMLegacyCollections.h"
 #import "PMOpenRouterClient.h"
 #import "PMSettings.h"
 #import "PMUtils.h"
@@ -20,10 +21,10 @@ static NSString * const kAppTitle = @"ShutterCalc for iOS 6";
 - (NSDictionary *)headersWithKey:(NSString *)key accept:(NSString *)accept
 {
     NSMutableDictionary *h = [NSMutableDictionary dictionary];
-    if (key.length) h[@"Authorization"] = [@"Bearer " stringByAppendingString:key];
-    h[@"Accept"] = accept ?: @"application/json";
-    h[@"HTTP-Referer"] = kAppReferer;
-    h[@"X-Title"] = kAppTitle;
+    if (key.length) PMSetDictionaryObject(h, @"Authorization", [@"Bearer " stringByAppendingString:key]);
+    PMSetDictionaryObject(h, @"Accept", accept ?: @"application/json");
+    PMSetDictionaryObject(h, @"HTTP-Referer", kAppReferer);
+    PMSetDictionaryObject(h, @"X-Title", kAppTitle);
     return h;
 }
 
@@ -48,11 +49,11 @@ static NSString * const kAppTitle = @"ShutterCalc for iOS 6";
     NSString *message = nil;
     NSInteger code = status;
     if ([json isKindOfClass:[NSDictionary class]]) {
-        id err = json[@"error"];
+        id err = [json objectForKey:@"error"];
         if ([err isKindOfClass:[NSDictionary class]]) {
-            id msg = err[@"message"];
+            id msg = [err objectForKey:@"message"];
             if ([msg isKindOfClass:[NSString class]]) message = msg;
-            id c = err[@"code"];
+            id c = [err objectForKey:@"code"];
             if ([c isKindOfClass:[NSNumber class]]) code = [c integerValue];
             else if ([c isKindOfClass:[NSString class]] && [c integerValue] > 0) code = [c integerValue];
         } else if ([err isKindOfClass:[NSString class]]) {
@@ -76,7 +77,7 @@ static NSString * const kAppTitle = @"ShutterCalc for iOS 6";
         if (error) { completion(nil, error); return; }
         id json = [PMUtils JSONObjectFromData:body];
         if (status != 200) { completion(nil, [PMOpenRouterClient errorFromResponseJSON:json status:status]); return; }
-        NSArray *data = [json isKindOfClass:[NSDictionary class]] ? json[@"data"] : nil;
+        NSArray *data = [json isKindOfClass:[NSDictionary class]] ? [json objectForKey:@"data"] : nil;
         if (![data isKindOfClass:[NSArray class]]) {
             completion(nil, PMMakeError(PMErrorBadResponse, L(@"Unexpected model list format.")));
             return;
@@ -98,7 +99,7 @@ static NSString * const kAppTitle = @"ShutterCalc for iOS 6";
         if (error) { completion(nil, error); return; }
         id json = [PMUtils JSONObjectFromData:body];
         if (status != 200) { completion(nil, [PMOpenRouterClient errorFromResponseJSON:json status:status]); return; }
-        NSDictionary *data = [json isKindOfClass:[NSDictionary class]] ? json[@"data"] : nil;
+        NSDictionary *data = [json isKindOfClass:[NSDictionary class]] ? [json objectForKey:@"data"] : nil;
         if (![data isKindOfClass:[NSDictionary class]]) {
             completion(nil, PMMakeError(PMErrorBadResponse, L(@"Unexpected response format.")));
             return;
@@ -222,10 +223,10 @@ static NSDictionary *PMExtractJSON(NSString *rawText)
     ];
 
     NSMutableDictionary *body = [NSMutableDictionary dictionary];
-    body[@"model"] = modelId;
-    body[@"messages"] = messages;
-    body[@"temperature"] = @(0.1);
-    body[@"max_tokens"] = @(2048);
+    PMSetDictionaryObject(body, @"model", modelId);
+    PMSetDictionaryObject(body, @"messages", messages);
+    PMSetDictionaryObject(body, @"temperature", @(0.1));
+    PMSetDictionaryObject(body, @"max_tokens", @(2048));
 
     NSData *bodyData = [PMUtils JSONDataFromObject:body];
     PMHTTPRequest *req = [PMHTTPRequest requestWithMethod:@"POST" host:kHost path:@"/api/v1/chat/completions"];
@@ -241,10 +242,10 @@ static NSDictionary *PMExtractJSON(NSString *rawText)
             return;
         }
 
-        NSArray *choices = [json isKindOfClass:[NSDictionary class]] ? json[@"choices"] : nil;
-        NSDictionary *firstChoice = choices.count ? choices[0] : nil;
-        NSDictionary *msg = firstChoice[@"message"];
-        NSString *rawContent = msg[@"content"];
+        NSArray *choices = [json isKindOfClass:[NSDictionary class]] ? [json objectForKey:@"choices"] : nil;
+        NSDictionary *firstChoice = choices.count ? [choices objectAtIndex:0] : nil;
+        NSDictionary *msg = [firstChoice objectForKey:@"message"];
+        NSString *rawContent = [msg objectForKey:@"content"];
 
         if (!rawContent.length) {
             completion(nil, PMMakeError(PMErrorBadResponse, L(@"The model returned an empty response.")));
@@ -252,7 +253,7 @@ static NSDictionary *PMExtractJSON(NSString *rawText)
         }
 
         NSDictionary *solution = PMExtractJSON(rawContent);
-        if (!solution || (!solution[@"solution_latex"] && !solution[@"solution"])) {
+        if (!solution || (![solution objectForKey:@"solution_latex"] && ![solution objectForKey:@"solution"])) {
             PMLog(@"Failed to parse math JSON from:\n%@", rawContent);
             completion(nil, PMMakeError(PMErrorBadResponse, L(@"Could not parse mathematical solution from model output.")));
             return;
@@ -301,7 +302,7 @@ static NSDictionary *PMExtractJSON(NSString *rawText)
         return;
     }
 
-    PMModelInfo *currentModel = chain[index];
+    PMModelInfo *currentModel = [chain objectAtIndex:index];
     PMLog(@"Attempting solution with model [%lu/%lu]: %@", (unsigned long)(index + 1), (unsigned long)chain.count, currentModel.modelId);
 
     [self solveProblemWithImage:image
@@ -315,7 +316,7 @@ static NSDictionary *PMExtractJSON(NSString *rawText)
         } else {
             PMLog(@"Model %@ failed: %@", currentModel.modelId, error.localizedDescription);
             if (index + 1 < chain.count && [PMSettings shared].autoFallback) {
-                PMModelInfo *nextModel = chain[index + 1];
+                PMModelInfo *nextModel = [chain objectAtIndex:index + 1];
                 if (onFallback) {
                     onFallback(currentModel, error, nextModel);
                 }

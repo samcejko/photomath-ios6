@@ -135,8 +135,8 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
 
         // Option Buttons
         for (NSInteger i = 0; i < count; i++) {
-            NSString *key = options[i];
-            NSString *title = (i < titles.count) ? titles[i] : key;
+            NSString *key = [options objectAtIndex:i];
+            NSString *title = (i < titles.count) ? [titles objectAtIndex:i] : key;
 
             NSInteger r = i / cols;
             NSInteger c = i % cols;
@@ -439,7 +439,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
     for (NSInteger r = 0; r < 4; r++) {
         for (NSInteger c = 0; c < cols; c++) {
             if (btnIdx >= self.currentButtons.count) break;
-            UIButton *btn = self.currentButtons[btnIdx++];
+            UIButton *btn = [self.currentButtons objectAtIndex:btnIdx++];
             CGFloat x = c * (btnW + spacing);
             CGFloat y = r * (btnH + spacing);
             btn.frame = CGRectMake(x, y, btnW, btnH);
@@ -481,9 +481,9 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
     }
 
     for (NSInteger r = 0; r < 4; r++) {
-        NSArray *rowKeys = keys[r];
+        NSArray *rowKeys = [keys objectAtIndex:r];
         for (NSInteger c = 0; c < 5; c++) {
-            NSString *key = rowKeys[c];
+            NSString *key = [rowKeys objectAtIndex:c];
 
             UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
             btn.titleLabel.font = [UIFont boldSystemFontOfSize:16.0f];

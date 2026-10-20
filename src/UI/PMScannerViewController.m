@@ -173,7 +173,7 @@
         }
     }
     if (!self.videoDevice && devices.count) {
-        self.videoDevice = devices[0];
+        self.videoDevice = [devices objectAtIndex:0];
     }
 
     if (!self.videoDevice) {
@@ -329,7 +329,7 @@
     self.hudLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 75, 220, 45)];
     self.hudLabel.textColor = [UIColor whiteColor];
     self.hudLabel.font = [UIFont boldSystemFontOfSize:13.0f];
-    self.hudLabel.textAlignment = NSTextAlignmentCenter;
+    self.hudLabel.textAlignment = UITextAlignmentCenter;
     self.hudLabel.numberOfLines = 2;
     self.hudLabel.backgroundColor = [UIColor clearColor];
     [self.hudView addSubview:self.hudLabel];
@@ -506,7 +506,7 @@
 
 - (void)executeSolveWithChain:(NSArray *)chain image:(UIImage *)image manualLatex:(NSString *)manualLatex
 {
-    PMModelInfo *first = chain[0];
+    PMModelInfo *first = [chain objectAtIndex:0];
     [self showHUDWithText:[NSString stringWithFormat:@"%@\n(%@)", L(@"Solving equation..."), first.displayName]];
 
     [[PMOpenRouterClient shared] solveProblemWithImage:image
@@ -569,7 +569,7 @@
 
 - (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info
 {
-    UIImage *img = info[UIImagePickerControllerEditedImage] ?: info[UIImagePickerControllerOriginalImage];
+    UIImage *img = [info objectForKey:UIImagePickerControllerEditedImage] ?: [info objectForKey:UIImagePickerControllerOriginalImage];
     [picker dismissViewControllerAnimated:YES completion:^{
         if (img) {
             [self showHUDWithText:L(@"Analyzing photo...")];

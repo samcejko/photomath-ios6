@@ -154,7 +154,7 @@
         return cell;
     }
 
-    PMModelInfo *m = self.filteredModels[indexPath.row];
+    PMModelInfo *m = [self.filteredModels objectAtIndex:indexPath.row];
     cell.textLabel.text = [m displayName];
     NSString *price = [m isFree] ? L(@"FREE") : [NSString stringWithFormat:@"$%@ / 1M", m.promptPrice ?: @"?"];
     cell.detailTextLabel.text = [NSString stringWithFormat:@"%@  •  %@  •  %ldk ctx", m.modelId, price, (long)(m.contextLength / 1024)];
@@ -168,7 +168,7 @@
     if (indexPath.section == 0) {
         [PMSettings shared].preferredModelId = nil;
     } else {
-        PMModelInfo *m = self.filteredModels[indexPath.row];
+        PMModelInfo *m = [self.filteredModels objectAtIndex:indexPath.row];
         [PMSettings shared].preferredModelId = m.modelId;
     }
     [self.tableView reloadData];
