@@ -5,11 +5,18 @@ on:
     branches: ['**']
   pull_request:
   workflow_dispatch:
+    inputs:
+      compatibility_min:
+        description: 'Compile-audit minimum for armv7; package metadata stays unchanged'
+        type: choice
+        default: '5.0'
+        options: ['4.3', '5.0', '5.1', '6.0']
 
 permissions:
   contents: read
 
 env:
+  COMPATIBILITY_MIN: ${{ inputs.compatibility_min }}
   THEOS: /home/runner/theos
   MBEDTLS_VERSION: "3.6.7"
   THEOS_CACHE_KEY: theos-linux-clang11-sdk93-sdk165-v2
@@ -34,6 +41,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Check HTTP chunk-size boundaries
+        run: python3 tools/check_http_chunk_size.py
 
       - name: Install packages
         run: |
@@ -167,11 +177,16 @@ jobs:
 
       - name: Build (${{ matrix.name }})
         run: |
-          set -o pipefail
+          set -eo pipefail
           export PATH="$THEOS/toolchain/linux/iphone/bin:$THEOS/bin:$PATH"
           if [ -n "${{ matrix.scheme }}" ]; then export THEOS_PACKAGE_SCHEME="${{ matrix.scheme }}"; fi
           make clean || true
-          make package FINALPACKAGE=1 -j"$(nproc)" -k 2>&1 | tee build.log
+          EXTRA=()
+          if [ -z "${{ matrix.scheme }}" ] && [ -n "$COMPATIBILITY_MIN" ]; then
+            case "$COMPATIBILITY_MIN" in 4.3|5.0|5.1|6.0) ;; *) exit 2 ;; esac
+            EXTRA+=("TARGET=iphone:clang:9.3:$COMPATIBILITY_MIN")
+          fi
+          make package FINALPACKAGE=1 "${EXTRA[@]}" -j"$(nproc)" -k 2>&1 | tee build.log
           APP=$(find .theos/_ -type d -name ShutterCalc.app | head -n1)
           test -n "$APP"
           echo "APP=$APP" >> "$GITHUB_ENV"
@@ -205,5 +220,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-log-${{ matrix.name }}
+          path: build.log
+          if-no-files-found: ignore
+
+
+      - name: Preserve compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compatibility-log-${{ matrix.name }}
           path: build.log
           if-no-files-found: ignore

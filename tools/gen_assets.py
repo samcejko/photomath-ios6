@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates the app icon and launch images for Photomath iOS 6 (run in CI, needs Pillow).
+"""Generates the app icon and launch images for ShutterCalc iOS 6 (run in CI, needs Pillow).
 
 Usage: python3 tools/gen_assets.py Resources
 """
@@ -114,7 +114,7 @@ def rounded_mask(size, radius_ratio=0.1757):
 
 
 def make_home_icon(size):
-    """The icon as it sits on the home screen: rounded corners baked in (UIPrerenderedIcon is on)."""
+    """The icon as it sits on the home screen: rounded corners baked in for legacy Cydia installation."""
     icon = make_icon(size).convert("RGBA")
     icon.putalpha(rounded_mask(size))
     return icon
@@ -130,8 +130,8 @@ def make_launch(w, h):
     cx, cy = w // 2, int(h * 0.40)
     img.paste(icon, (cx - s // 2, cy - s // 2), mask)
     fnt = font(int(min(w, h) * 0.065))
-    tw, th, l, t = text_size(d, "Photomath", fnt)
-    d.text((cx - tw // 2 - l, cy + s // 2 + int(s * 0.25) - t), "Photomath", font=fnt, fill=(50, 54, 66))
+    tw, th, l, t = text_size(d, "ShutterCalc", fnt)
+    d.text((cx - tw // 2 - l, cy + s // 2 + int(s * 0.25) - t), "ShutterCalc", font=fnt, fill=(50, 54, 66))
 
     subfnt = font(int(min(w, h) * 0.032))
     subtext = "Smart Math Camera"
@@ -185,7 +185,7 @@ LAUNCH = {
 
 if __name__ == "__main__":
     for name, size in ICONS.items():
-        make_icon(size).save(os.path.join(OUT, name), "PNG")
+        (make_icon(size) if size in (120, 180, 76, 152, 167) else make_home_icon(size)).save(os.path.join(OUT, name), "PNG")
         print("icon", name)
 
     for name, (w, h) in LAUNCH.items():

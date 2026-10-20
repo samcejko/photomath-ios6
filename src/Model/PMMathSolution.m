@@ -1,3 +1,4 @@
+#import "PMCommon.h"
 #import "PMMathSolution.h"
 #import "PMUtils.h"
 
@@ -33,7 +34,7 @@
 {
     if (![json isKindOfClass:[NSDictionary class]]) return nil;
     PMMathSolution *sol = [[PMMathSolution alloc] init];
-    sol.solutionId = [PMUtils base64EncodeData:[[NSUUID UUID] UUIDString] ? [[[NSUUID UUID] UUIDString] dataUsingEncoding:NSUTF8StringEncoding] : [@"pm_" dataUsingEncoding:NSUTF8StringEncoding]];
+    sol.solutionId = [PMUtils base64EncodeData:[PMUniqueIdentifier() dataUsingEncoding:NSUTF8StringEncoding]];
     sol.date = [NSDate date];
     sol.modelUsed = model ?: @"";
 

@@ -165,7 +165,7 @@ static NSDictionary *PMExtractJSON(NSString *rawText)
     }
 
     NSString *langPrompt = @"English";
-    if ([language isEqualToString:@"cs"] || ([language isEqualToString:@"auto"] && [[[NSLocale preferredLanguages] firstObject] hasPrefix:@"cs"])) {
+    if ([language isEqualToString:@"cs"] || ([language isEqualToString:@"auto"] && [PMFirst([NSLocale preferredLanguages]) hasPrefix:@"cs"])) {
         langPrompt = @"Czech (čeština)";
     }
 

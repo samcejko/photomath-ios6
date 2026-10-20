@@ -34,3 +34,7 @@ enum {
 };
 
 NSError *PMMakeError(NSInteger code, NSString *message);
+
+static inline id PMFirst(NSArray *array) { return array.count ? [array objectAtIndex:0] : nil; }
+
+NSString *PMUniqueIdentifier(void);

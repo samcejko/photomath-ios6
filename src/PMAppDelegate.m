@@ -87,8 +87,8 @@
     }
 
     PMScannerViewController *scannerVC = nil;
-    if ([self.navigationController.viewControllers.firstObject isKindOfClass:[PMScannerViewController class]]) {
-        scannerVC = (PMScannerViewController *)self.navigationController.viewControllers.firstObject;
+    if ([PMFirst(self.navigationController.viewControllers) isKindOfClass:[PMScannerViewController class]]) {
+        scannerVC = (PMScannerViewController *)PMFirst(self.navigationController.viewControllers);
     }
 
     if ([target isEqualToString:@"scanner"]) {

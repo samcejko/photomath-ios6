@@ -53,6 +53,7 @@ static PMFraction PMFractionDiv(PMFraction a, PMFraction b) {
 }
 
 static PMFraction doubleToFraction(double val) {
+    if (!isfinite(val) || fabs(val) >= 9.0e18) return (PMFraction){ 0, 0 };
     double eps = 1e-6;
     if (fabs(val - round(val)) < eps) {
         return PMFractionMake((long long)round(val), 1);
@@ -78,6 +79,7 @@ static PMFraction doubleToFraction(double val) {
 }
 
 static NSString *formatFractionOrDouble(double val) {
+    if (!isfinite(val) || fabs(val) >= 9.0e18) return [NSString stringWithFormat:@"%.8g", val];
     if (fabs(val) < 1e-9) return @"0";
     if (fabs(val - round(val)) < 1e-9) {
         return [NSString stringWithFormat:@"%lld", (long long)round(val)];
@@ -152,10 +154,11 @@ static PMPoly PMPolyMul(PMPoly a, PMPoly b) {
     double c3 = a.c0 * b.c3 + a.c1 * b.c2 + a.c2 * b.c1 + a.c3 * b.c0;
     double c4 = a.c0 * b.c4 + a.c1 * b.c3 + a.c2 * b.c2 + a.c3 * b.c1 + a.c4 * b.c0;
 
-    double higher = a.c1*b.c4 + a.c2*b.c3 + a.c3*b.c2 + a.c4*b.c1 +
-                    a.c2*b.c4 + a.c3*b.c3 + a.c4*b.c2 +
-                    a.c3*b.c4 + a.c4*b.c3 + a.c4*b.c4;
-    if (fabs(higher) > 1e-9) {
+    double c5 = a.c1*b.c4 + a.c2*b.c3 + a.c3*b.c2 + a.c4*b.c1;
+    double c6 = a.c2*b.c4 + a.c3*b.c3 + a.c4*b.c2;
+    double c7 = a.c3*b.c4 + a.c4*b.c3;
+    double c8 = a.c4*b.c4;
+    if (fabs(c5) > 1e-9 || fabs(c6) > 1e-9 || fabs(c7) > 1e-9 || fabs(c8) > 1e-9) {
         return (PMPoly){0,0,0,0,0,NO};
     }
     return (PMPoly){ c0, c1, c2, c3, c4, YES };
@@ -409,9 +412,11 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 @property (nonatomic, copy) NSString *input;
 @property (nonatomic) NSInteger pos;
 @property (nonatomic) unichar currentChar;
+@property (nonatomic) BOOL invalid;
 
 - (instancetype)initWithString:(NSString *)str;
 - (PMNode *)parseExpression;
+- (PMNode *)parseComplete;
 @end
 
 @implementation PMParser
@@ -425,6 +430,13 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         _currentChar = _input.length > 0 ? [_input characterAtIndex:0] : 0;
     }
     return self;
+}
+
+- (PMNode *)parseComplete
+{
+    PMNode *node = [self parseExpression];
+    [self skipWhitespace];
+    return (self.invalid || self.currentChar != 0) ? nil : node;
 }
 
 - (void)advance
@@ -543,6 +555,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         PMNode *node = [self parseExpression];
         [self skipWhitespace];
         if (self.currentChar == close) [self advance];
+        else self.invalid = YES;
         return node;
     }
 
@@ -552,6 +565,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         PMNode *node = [self parseExpression];
         [self skipWhitespace];
         if (self.currentChar == '|') [self advance];
+        else self.invalid = YES;
         PMNode *fn = [[PMNode alloc] init];
         fn.type = PMNodeFunction;
         fn.stringValue = @"abs";
@@ -568,6 +582,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         }
         PMNode *node = [[PMNode alloc] init];
         node.type = PMNodeNumber;
+        if ([numStr isEqualToString:@"."] || [numStr componentsSeparatedByString:@"."].count > 2) self.invalid = YES;
         node.numberValue = [numStr doubleValue];
         return node;
     }
@@ -593,6 +608,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
             PMNode *arg = [self parseExpression];
             [self skipWhitespace];
             if (self.currentChar == ')') [self advance];
+            else self.invalid = YES;
             PMNode *fn = [[PMNode alloc] init];
             fn.type = PMNodeFunction;
             fn.stringValue = idStr;
@@ -607,7 +623,9 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         return node;
     }
 
-    // Fallback: zero
+    // A missing operand must never silently become zero.
+    self.invalid = YES;
+    // Return a node so recursive parsing can finish safely.
     PMNode *zero = [[PMNode alloc] init];
     zero.type = PMNodeNumber;
     zero.numberValue = 0.0;
@@ -667,7 +685,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
         if ([s characterAtIndex:i] == ',') {
             unichar prev = [s characterAtIndex:i - 1];
             unichar next = [s characterAtIndex:i + 1];
-            if (isdigit(prev) && isdigit(next)) {
+            if (prev >= '0' && prev <= '9' && next >= '0' && next <= '9') {
                 [s replaceCharactersInRange:NSMakeRange(i, 1) withString:@"."];
             }
         }
@@ -854,6 +872,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     BOOL isCzech = [[PMSettings shared].solutionLanguage isEqualToString:@"cs"];
 
     NSArray *sides = [clean componentsSeparatedByString:@"="];
+    if (sides.count > 2) return nil;
     NSString *varName = [self detectVariableInString:clean];
 
     if (sides.count == 2) {
@@ -872,12 +891,14 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
             // Identity check or comparison: e.g. 5 + 3 = 8
             PMParser *lp = [[PMParser alloc] initWithString:lhsStr];
             PMParser *rp = [[PMParser alloc] initWithString:rhsStr];
-            double lVal = [[lp parseExpression] evaluateNumericWithError:error];
-            double rVal = [[rp parseExpression] evaluateNumericWithError:error];
-            if (!isnan(lVal) && !isnan(rVal)) {
+            PMNode *left = [lp parseComplete], *right = [rp parseComplete];
+            if (!left || !right) return nil;
+            double lVal = [left evaluateNumericWithError:error];
+            double rVal = [right evaluateNumericWithError:error];
+            if (isfinite(lVal) && isfinite(rVal)) {
                 BOOL eq = fabs(lVal - rVal) < 1e-9;
                 PMMathSolution *sol = [[PMMathSolution alloc] init];
-                sol.solutionId = [[NSUUID UUID] UUIDString];
+                sol.solutionId = PMUniqueIdentifier();
                 sol.date = [NSDate date];
                 sol.problemLatex = problemLatex;
                 sol.solutionLatex = eq ? (isCzech ? @"\\text{Pravdivá rovnost (True)}" : @"\\text{True}") : (isCzech ? @"\\text{Nepravdivá rovnost (False)}" : @"\\text{False}");
@@ -915,12 +936,13 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
                                      error:(NSError **)error
 {
     PMParser *p = [[PMParser alloc] initWithString:expr];
-    PMNode *root = [p parseExpression];
+    PMNode *root = [p parseComplete];
+    if (!root) return nil;
     double result = [root evaluateNumericWithError:error];
-    if (isnan(result)) return nil;
+    if (!isfinite(result)) return nil;
 
     PMMathSolution *sol = [[PMMathSolution alloc] init];
-    sol.solutionId = [[NSUUID UUID] UUIDString];
+    sol.solutionId = PMUniqueIdentifier();
     sol.date = [NSDate date];
     sol.problemLatex = problemLatex;
     sol.modelUsed = @"Offline Engine";
@@ -965,8 +987,9 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
 {
     PMParser *lp = [[PMParser alloc] initWithString:lhsStr];
     PMParser *rp = [[PMParser alloc] initWithString:rhsStr];
-    PMNode *lNode = [lp parseExpression];
-    PMNode *rNode = [rp parseExpression];
+    PMNode *lNode = [lp parseComplete];
+    PMNode *rNode = [rp parseComplete];
+    if (!lNode || !rNode) return nil;
 
     PMPoly lPoly = [lNode evaluatePolyForVar:varName error:error];
     PMPoly rPoly = [rNode evaluatePolyForVar:varName error:error];
@@ -978,6 +1001,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
 
     // P(x) = LHS - RHS = 0 => c4*x^4 + c3*x^3 + c2*x^2 + c1*x + c0 = 0
     PMPoly poly = PMPolySub(lPoly, rPoly);
+    if (!isfinite(poly.c0) || !isfinite(poly.c1) || !isfinite(poly.c2) || !isfinite(poly.c3) || !isfinite(poly.c4)) return nil;
 
     double a4 = poly.c4;
     double a3 = poly.c3;
@@ -986,7 +1010,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     double c = poly.c0;
 
     PMMathSolution *sol = [[PMMathSolution alloc] init];
-    sol.solutionId = [[NSUUID UUID] UUIDString];
+    sol.solutionId = PMUniqueIdentifier();
     sol.date = [NSDate date];
     sol.problemLatex = problemLatex;
     sol.modelUsed = @"Offline Engine";

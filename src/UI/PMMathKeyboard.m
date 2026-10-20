@@ -10,6 +10,31 @@
 
 #pragma mark - Callout View
 
+
+static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
+{
+    if (![@[@"left", @"right", @"up", @"down"] containsObject:direction]) return nil;
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(18, 18), NO, 0);
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    CGContextTranslateCTM(ctx, 9, 9);
+    CGFloat angle = [direction isEqualToString:@"left"] ? 3.14159265 :
+        ([direction isEqualToString:@"up"] ? -1.57079633 : ([direction isEqualToString:@"down"] ? 1.57079633 : 0));
+    CGContextRotateCTM(ctx, angle);
+    CGContextSetStrokeColorWithColor(ctx, color.CGColor);
+    CGContextSetLineWidth(ctx, 2);
+    CGContextSetLineCap(ctx, kCGLineCapRound);
+    CGContextSetLineJoin(ctx, kCGLineJoinRound);
+    CGContextMoveToPoint(ctx, -6, 0);
+    CGContextAddLineToPoint(ctx, 6, 0);
+    CGContextMoveToPoint(ctx, 1, -5);
+    CGContextAddLineToPoint(ctx, 6, 0);
+    CGContextAddLineToPoint(ctx, 1, 5);
+    CGContextStrokePath(ctx);
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return image;
+}
+
 @interface PMKeyCalloutView : UIView <UIGestureRecognizerDelegate>
 @property (nonatomic, copy) void (^onOptionSelected)(NSString *key);
 @property (nonatomic, strong) UIView *bubbleView;
@@ -260,9 +285,9 @@
     [self.rawTextField addTarget:self action:@selector(textFieldCursorChanged:) forControlEvents:UIControlEventEditingChanged];
     [self.previewCard addSubview:self.rawTextField];
 
-    // Cursor navigation buttons: ◀ and ▶
+    // Drawn cursor navigation buttons
     self.cursorLeftBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    [self.cursorLeftBtn setTitle:@"◀" forState:UIControlStateNormal];
+    [self.cursorLeftBtn setImage:AuditDirectionIcon(@"left", [UIColor darkGrayColor]) forState:UIControlStateNormal];
     [self.cursorLeftBtn setTitleColor:[UIColor colorWithWhite:0.3f alpha:1.0f] forState:UIControlStateNormal];
     [self.cursorLeftBtn setTitleColor:[[PMTheme shared] accentColor] forState:UIControlStateHighlighted];
     self.cursorLeftBtn.titleLabel.font = [UIFont systemFontOfSize:12.0f];
@@ -274,7 +299,7 @@
     [self.previewCard addSubview:self.cursorLeftBtn];
 
     self.cursorRightBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    [self.cursorRightBtn setTitle:@"▶" forState:UIControlStateNormal];
+    [self.cursorRightBtn setImage:AuditDirectionIcon(@"right", [UIColor darkGrayColor]) forState:UIControlStateNormal];
     [self.cursorRightBtn setTitleColor:[UIColor colorWithWhite:0.3f alpha:1.0f] forState:UIControlStateNormal];
     [self.cursorRightBtn setTitleColor:[[PMTheme shared] accentColor] forState:UIControlStateHighlighted];
     self.cursorRightBtn.titleLabel.font = [UIFont systemFontOfSize:12.0f];
