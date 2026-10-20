@@ -1,3 +1,4 @@
+#import "PMLegacyCollections.h"
 #import "PMTheme.h"
 #import "PMSettings.h"
 #import "PMModern.h"
@@ -141,7 +142,7 @@
 
     UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
-    return [img resizableImageWithCapInsets:UIEdgeInsetsMake(0, 0, 0, 0) resizingMode:UIImageResizingModeTile];
+    return [img resizableImageWithCapInsets:UIEdgeInsetsMake(0, 0, 0, 0)];
 }
 
 - (UIImage *)glossyButtonImageWithColor:(UIColor *)baseColor highlighted:(BOOL)highlighted
@@ -188,7 +189,7 @@
 
     UIImage *raw = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
-    return [raw resizableImageWithCapInsets:UIEdgeInsetsMake(12, 12, 12, 12) resizingMode:UIImageResizingModeStretch];
+    return [raw stretchableImageWithLeftCapWidth:14 topCapHeight:17];
 }
 
 - (UIImage *)reticleCornerImageWithColor:(UIColor *)color stroke:(CGFloat)stroke length:(CGFloat)len
@@ -263,7 +264,7 @@
 
     UIImage *raw = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
-    return [raw resizableImageWithCapInsets:UIEdgeInsetsMake(10, 10, 10, 10) resizingMode:UIImageResizingModeStretch];
+    return [raw stretchableImageWithLeftCapWidth:11 topCapHeight:15];
 }
 
 - (UIImage *)torchIconActive:(BOOL)active
@@ -459,29 +460,33 @@
     bar.tintColor = [UIColor whiteColor];
 
     NSMutableDictionary *attrs = [NSMutableDictionary dictionary];
-    attrs[UITextAttributeTextColor] = [UIColor whiteColor];
-    attrs[UITextAttributeTextShadowColor] = [UIColor colorWithWhite:0.0f alpha:0.45f];
-    attrs[UITextAttributeTextShadowOffset] = [NSValue valueWithUIOffset:UIOffsetMake(0, -1)];
+    PMSetDictionaryObject(attrs, UITextAttributeTextColor, [UIColor whiteColor]);
+    PMSetDictionaryObject(attrs, UITextAttributeTextShadowColor, [UIColor colorWithWhite:0.0f alpha:0.45f]);
+    PMSetDictionaryObject(attrs, UITextAttributeTextShadowOffset, [NSValue valueWithUIOffset:UIOffsetMake(0, -1)]);
 
     NSMutableDictionary *btnAttrs = [NSMutableDictionary dictionary];
-    btnAttrs[UITextAttributeTextColor] = [UIColor whiteColor];
-    btnAttrs[UITextAttributeTextShadowColor] = [UIColor colorWithWhite:0.0f alpha:0.45f];
-    btnAttrs[UITextAttributeTextShadowOffset] = [NSValue valueWithUIOffset:UIOffsetMake(0, -1)];
+    PMSetDictionaryObject(btnAttrs, UITextAttributeTextColor, [UIColor whiteColor]);
+    PMSetDictionaryObject(btnAttrs, UITextAttributeTextShadowColor, [UIColor colorWithWhite:0.0f alpha:0.45f]);
+    PMSetDictionaryObject(btnAttrs, UITextAttributeTextShadowOffset, [NSValue valueWithUIOffset:UIOffsetMake(0, -1)]);
 
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
+    // PMModernIOS checks the running major version; these attributes are never used below iOS 7.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
     if (PMModernIOS()) {
         NSShadow *sh = [[NSShadow alloc] init];
         sh.shadowColor = [UIColor colorWithWhite:0.0f alpha:0.5f];
         sh.shadowOffset = CGSizeMake(0, -1);
 
-        attrs[NSForegroundColorAttributeName] = [UIColor whiteColor];
-        attrs[NSShadowAttributeName] = sh;
-        attrs[NSFontAttributeName] = [UIFont boldSystemFontOfSize:18.0f];
+        PMSetDictionaryObject(attrs, NSForegroundColorAttributeName, [UIColor whiteColor]);
+        PMSetDictionaryObject(attrs, NSShadowAttributeName, sh);
+        PMSetDictionaryObject(attrs, NSFontAttributeName, [UIFont boldSystemFontOfSize:18.0f]);
 
-        btnAttrs[NSForegroundColorAttributeName] = [UIColor whiteColor];
-        btnAttrs[NSShadowAttributeName] = sh;
-        btnAttrs[NSFontAttributeName] = [UIFont boldSystemFontOfSize:13.0f];
+        PMSetDictionaryObject(btnAttrs, NSForegroundColorAttributeName, [UIColor whiteColor]);
+        PMSetDictionaryObject(btnAttrs, NSShadowAttributeName, sh);
+        PMSetDictionaryObject(btnAttrs, NSFontAttributeName, [UIFont boldSystemFontOfSize:13.0f]);
     }
+#pragma clang diagnostic pop
 #endif
 
     bar.titleTextAttributes = attrs;
