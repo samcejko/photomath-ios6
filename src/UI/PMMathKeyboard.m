@@ -410,7 +410,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
         L(@"Trig & Calc")
     ]];
     self.modeSegment.segmentedControlStyle = UISegmentedControlStyleBar;
-    self.modeSegment.tintColor = [[PMTheme shared] accentColor];
+    self.modeSegment.tintColor = [UIColor colorWithWhite:.5 alpha:1];
     self.modeSegment.selectedSegmentIndex = 0;
     [self.modeSegment addTarget:self action:@selector(modeChanged:) forControlEvents:UIControlEventValueChanged];
     [self.scrollView addSubview:self.modeSegment];
