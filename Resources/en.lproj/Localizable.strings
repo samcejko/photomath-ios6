@@ -96,3 +96,13 @@
 "Reset" = "Reset";
 "Move cursor left" = "Move cursor left";
 "Move cursor right" = "Move cursor right";
+
+"The expression contains an unknown constant." = "The expression contains an unknown constant.";
+"Factorial requires a whole number from 0 to 170." = "Factorial requires a whole number from 0 to 170.";
+"Division by zero is undefined." = "Division by zero is undefined.";
+"A negative number has no real square root." = "A negative number has no real square root.";
+"Offline equations must contain one supported variable." = "Offline equations must contain one supported variable.";
+"Equations with a variable in the denominator need online solving. Their graph may still be available." = "Equations with a variable in the denominator need online solving. Their graph may still be available.";
+"This equation cannot be solved by the offline engine. Your input has been kept." = "This equation cannot be solved by the offline engine. Your input has been kept.";
+"General fourth-degree equations need online solving." = "General fourth-degree equations need online solving.";
+"General cubic equations need online solving." = "General cubic equations need online solving.";

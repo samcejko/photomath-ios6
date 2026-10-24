@@ -842,6 +842,11 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     if(error)*error=nil;
     PMMathSolution *solution=[self solveValidatedProblem:problemLatex error:error];
     if(!solution && error && !*error) *error=[NSError errorWithDomain:@"PMOfflineSolver" code:100 userInfo:@{NSLocalizedDescriptionKey:NSLocalizedString(@"Check the expression: complete the brackets and fill every part of the formula. This problem may require online solving.",nil)}];
+    if(!solution && error && *error && [[*error domain] isEqualToString:@"PMOfflineSolver"]) {
+        NSDictionary *messages=@{@1:@"The expression contains an unknown constant.",@2:@"Factorial requires a whole number from 0 to 170.",@3:@"Division by zero is undefined.",@4:@"A negative number has no real square root.",@5:@"Offline equations must contain one supported variable.",@6:@"Equations with a variable in the denominator need online solving. Their graph may still be available.",@7:@"This equation cannot be solved by the offline engine. Your input has been kept.",@8:@"General fourth-degree equations need online solving.",@9:@"General cubic equations need online solving."};
+        NSString *message=[messages objectForKey:@([*error code])];
+        if(message)*error=[NSError errorWithDomain:@"PMOfflineSolver" code:[*error code] userInfo:@{NSLocalizedDescriptionKey:NSLocalizedString(message,nil)}];
+    }
     return solution;
 }
 

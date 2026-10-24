@@ -1,6 +1,6 @@
 # ShutterCalc for iOS 6
 
-A universal camera math scanner and solver for **jailbroken iOS 6.x** devices (armv7, e.g. iPad 2, iPhone 4S),
+A universal camera math scanner and solver for **jailbroken iOS 5–10** devices (armv7, e.g. iPad 2, iPhone 4S),
 with a second build for **64-bit devices with iOS 14–17** (iPhone X and newer: rootless jailbreaks and TrollStore)
 that preserves the classic glossy iOS 6 aesthetic.
 
@@ -28,7 +28,7 @@ Get the latest packages from the [Releases](../../releases/latest) page:
 
 | Device | Package |
 | --- | --- |
-| iOS 6.x, 32-bit (iPad 2, iPhone 4S, …) | `ShutterCalc-<version>.ipa` or `com.samcejko.shuttercalc_<version>_iphoneos-arm.deb` |
+| iOS 5–10, 32-bit (iPad 2, iPhone 4S, …) | `ShutterCalc-<version>.ipa` or `com.samcejko.shuttercalc_<version>_iphoneos-arm.deb` |
 | iOS 14–17, 64-bit, rootless jailbreak (palera1n, Dopamine) | `com.samcejko.shuttercalc_<version>_iphoneos-arm64.deb` |
 | iOS 14–17, 64-bit, TrollStore | `ShutterCalc-<version>-arm64.ipa` |
 
@@ -47,7 +47,7 @@ On iOS 14–17 (64-bit): with a rootless jailbreak install the `iphoneos-arm64` 
 
 No Mac needed. Every push and pull request runs `.github/workflows/build.yml` on Ubuntu with Theos, Mbed TLS and iosMath:
 
-- `ios6-armv7`: iOS 9.3 SDK, deployment target 6.0 → `ShutterCalc-<version>.ipa` and `.deb`.
+- `ios5-armv7`: iOS 9.3 SDK, deployment target 5.0 → `ShutterCalc-<version>.ipa` and `.deb`.
 - `ios14-arm64`: iOS 16.5 SDK, deployment target 14.0 → `ShutterCalc-<version>-arm64.ipa` and `iphoneos-arm64.deb`.
 
 Local PowerShell helpers (Windows):
@@ -65,3 +65,13 @@ Local PowerShell helpers (Windows):
 - `src/Util` – iOS 6 / modern iOS compatibility shims (`PMModern`) and helper utilities.
 - `vendor` – Mbed TLS config and platform glue.
 - `tools` – Asset generator, modern bundle script, and GitHub deployment scripts.
+
+## Offline editor and graphs
+
+Typed numeric expressions, linear/quadratic equations and simple isolated cubic/fourth powers can be solved locally. Incomplete formulas, domain errors, unsupported equations and results outside the supported number range return an explanation; the editor and its draft remain available. A trailing `=` or `=?` evaluates a numeric expression. Variable expressions without `=` keep the existing roots-of-expression convention.
+
+The raw input has a visible native caret, cursor arrows and Next Field navigation. Empty fractions, roots and powers receive preview-only square placeholders immediately. They never enter the saved or solved expression. Drafts survive reopening the editor.
+
+View Graph plots real-valued expressions and `y=…`/`f(x)=…` functions locally. Other equations plot left minus right so intersections with zero identify solutions. Drag to pan and pinch or use +/− to zoom; poles and undefined values are omitted. This does not add a general symbolic solver or a new server.
+
+The ARMv7 package targets iOS 5.0–10.x. Physical checks use iPad 2 / iOS 6.1.3 and iPhone X / iOS 16.7.16; iOS 5 and 7–10 still need physical-device coverage. The rootless DEB requires iOS 15+; the ARM64 IPA requires iOS 14+.

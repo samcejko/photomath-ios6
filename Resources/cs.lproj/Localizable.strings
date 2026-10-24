@@ -96,3 +96,13 @@
 "Reset" = "Obnovit";
 "Move cursor left" = "Posunout kurzor vlevo";
 "Move cursor right" = "Posunout kurzor vpravo";
+
+"The expression contains an unknown constant." = "Výraz obsahuje neznámou konstantu.";
+"Factorial requires a whole number from 0 to 170." = "Faktoriál vyžaduje celé číslo od 0 do 170.";
+"Division by zero is undefined." = "Dělení nulou není definováno.";
+"A negative number has no real square root." = "Záporné číslo nemá reálnou druhou odmocninu.";
+"Offline equations must contain one supported variable." = "Offline rovnice musí obsahovat jednu podporovanou neznámou.";
+"Equations with a variable in the denominator need online solving. Their graph may still be available." = "Rovnice s neznámou ve jmenovateli vyžadují online výpočet. Jejich graf může být dostupný.";
+"This equation cannot be solved by the offline engine. Your input has been kept." = "Tuto rovnici nelze vyřešit offline. Zadání zůstalo zachované.";
+"General fourth-degree equations need online solving." = "Obecné rovnice čtvrtého stupně vyžadují online výpočet.";
+"General cubic equations need online solving." = "Obecné rovnice třetího stupně vyžadují online výpočet.";
