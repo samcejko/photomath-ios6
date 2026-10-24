@@ -3,6 +3,7 @@
 extern NSString *PMUniqueIdentifier(void);
 #import <math.h>
 #import <ctype.h>
+#import <float.h>
 
 static NSString *PMFirstLanguage(void) { NSArray *languages=[NSLocale preferredLanguages];return languages.count?[languages objectAtIndex:0]:@"en"; }
 
@@ -48,7 +49,7 @@ static PMFraction doubleToFraction(double val) {
 static NSString *formatFractionOrDouble(double val) {
     if (!isfinite(val) || fabs(val) >= 9.0e18) return [NSString stringWithFormat:@"%.8g", val];
     if (val == 0) return @"0";
-    if (fabs(val-round(val)) <= 1e-12 && fabs(val)>=1e-12)
+    if (fabs(val-round(val)) <= 1e-12 && round(val)!=0)
         return [NSString stringWithFormat:@"%lld",(long long)round(val)];
     PMFraction f=doubleToFraction(val);
     if (f.den>1) return f.num<0 ? [NSString stringWithFormat:@"-\\frac{%lld}{%lld}",-f.num,f.den] : [NSString stringWithFormat:@"\\frac{%lld}{%lld}",f.num,f.den];
@@ -90,16 +91,16 @@ static PMPoly PMPolyMulConst(PMPoly a, double k) {
 }
 
 static PMPoly PMPolyDivConst(PMPoly a, double d) {
-    if (!a.valid || fabs(d) < 1e-12) return (PMPoly){0,0,0,0,0,NO};
+    if (!a.valid || d == 0) return (PMPoly){0,0,0,0,0,NO};
     return (PMPoly){ a.c0 / d, a.c1 / d, a.c2 / d, a.c3 / d, a.c4 / d, YES };
 }
 
 static PMPoly PMPolyMul(PMPoly a, PMPoly b) {
     if (!a.valid || !b.valid) return (PMPoly){0,0,0,0,0,NO};
-    if (fabs(a.c1) < 1e-9 && fabs(a.c2) < 1e-9 && fabs(a.c3) < 1e-9 && fabs(a.c4) < 1e-9) {
+    if ((a.c1)==0 && (a.c2)==0 && (a.c3)==0 && (a.c4)==0) {
         return PMPolyMulConst(b, a.c0);
     }
-    if (fabs(b.c1) < 1e-9 && fabs(b.c2) < 1e-9 && fabs(b.c3) < 1e-9 && fabs(b.c4) < 1e-9) {
+    if ((b.c1)==0 && (b.c2)==0 && (b.c3)==0 && (b.c4)==0) {
         return PMPolyMulConst(a, b.c0);
     }
 
@@ -113,7 +114,7 @@ static PMPoly PMPolyMul(PMPoly a, PMPoly b) {
     double c6 = a.c2*b.c4 + a.c3*b.c3 + a.c4*b.c2;
     double c7 = a.c3*b.c4 + a.c4*b.c3;
     double c8 = a.c4*b.c4;
-    if (fabs(c5) > 1e-9 || fabs(c6) > 1e-9 || fabs(c7) > 1e-9 || fabs(c8) > 1e-9) {
+    if ((c5)!=0 || (c6)!=0 || (c7)!=0 || (c8)!=0) {
         return (PMPoly){0,0,0,0,0,NO};
     }
     return (PMPoly){ c0, c1, c2, c3, c4, YES };
@@ -126,8 +127,8 @@ static NSString *formatPolyEquation(double a, double b, double c, NSString *varN
     BOOL hasTerm = NO;
 
     // x^2 term
-    if (fabs(a) >= 1e-9) {
-        if (fabs(a - 1.0) < 1e-9) {
+    if ((a)!=0) {
+        if ((a - 1.0)==0) {
             [s appendFormat:@"%@^2", varName];
         } else if (fabs(a - (-1.0)) < 1e-9) {
             [s appendFormat:@"-%@^2", varName];
@@ -138,7 +139,7 @@ static NSString *formatPolyEquation(double a, double b, double c, NSString *varN
     }
 
     // x term
-    if (fabs(b) >= 1e-9) {
+    if ((b)!=0) {
         if (hasTerm) {
             if (b > 0) {
                 [s appendString:@" + "];
@@ -150,7 +151,7 @@ static NSString *formatPolyEquation(double a, double b, double c, NSString *varN
         }
 
         double absB = fabs(b);
-        if (fabs(absB - 1.0) < 1e-9) {
+        if ((absB - 1.0)==0) {
             [s appendFormat:@"%@", varName];
         } else {
             [s appendFormat:@"%@%@", formatFractionOrDouble(absB), varName];
@@ -159,7 +160,7 @@ static NSString *formatPolyEquation(double a, double b, double c, NSString *varN
     }
 
     // Constant term
-    if (fabs(c) >= 1e-9 || !hasTerm) {
+    if ((c)!=0 || !hasTerm) {
         if (hasTerm) {
             if (c > 0) {
                 [s appendString:@" + "];
@@ -220,7 +221,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
             if ([self.stringValue isEqualToString:@"-"]) return -v;
             if ([self.stringValue isEqualToString:@"+"]) return v;
             if ([self.stringValue isEqualToString:@"!"]) {
-                if (v < 0 || v > 170 || fabs(v - round(v)) > 1e-6) {
+                if (v < 0 || v > 170 || v != round(v)) {
                     if (error) *error = [NSError errorWithDomain:@"PMOfflineSolver" code:2 userInfo:@{NSLocalizedDescriptionKey: @"Factorial only defined for non-negative integers"}];
                     return NAN;
                 }
@@ -318,31 +319,31 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
             if ([self.stringValue isEqualToString:@"*"]) return PMPolyMul(l, r);
             if ([self.stringValue isEqualToString:@"/"]) {
                 // Denominator must be a constant
-                if (fabs(r.c1) > 1e-9 || fabs(r.c2) > 1e-9 || fabs(r.c3) > 1e-9 || fabs(r.c4) > 1e-9) {
+                if ((r.c1)!=0 || (r.c2)!=0 || (r.c3)!=0 || (r.c4)!=0) {
                     if (error) *error = [NSError errorWithDomain:@"PMOfflineSolver" code:6 userInfo:@{NSLocalizedDescriptionKey: @"Rational polynomials with variable denominator not supported offline"}];
                     return (PMPoly){0,0,0,0,0,NO};
                 }
                 return PMPolyDivConst(l, r.c0);
             }
             if ([self.stringValue isEqualToString:@"^"]) {
-                if (fabs(r.c1) > 1e-9 || fabs(r.c2) > 1e-9 || fabs(r.c3) > 1e-9 || fabs(r.c4) > 1e-9) return (PMPoly){0,0,0,0,0,NO};
+                if ((r.c1)!=0 || (r.c2)!=0 || (r.c3)!=0 || (r.c4)!=0) return (PMPoly){0,0,0,0,0,NO};
                 // If base is a constant
-                if (fabs(l.c1) < 1e-9 && fabs(l.c2) < 1e-9 && fabs(l.c3) < 1e-9 && fabs(l.c4) < 1e-9) {
+                if ((l.c1)==0 && (l.c2)==0 && (l.c3)==0 && (l.c4)==0) {
                     return PMPolyMakeConst(pow(l.c0, r.c0));
                 }
-                if (fabs(r.c0) < 1e-9) {
+                if ((r.c0)==0) {
                     return PMPolyMakeConst(1.0);
                 }
-                if (fabs(r.c0 - 1.0) < 1e-9) {
+                if ((r.c0 - 1.0)==0) {
                     return l;
                 }
-                if (fabs(r.c0 - 2.0) < 1e-9) {
+                if ((r.c0 - 2.0)==0) {
                     return PMPolyMul(l, l);
                 }
-                if (fabs(r.c0 - 3.0) < 1e-9) {
+                if ((r.c0 - 3.0)==0) {
                     return PMPolyMul(PMPolyMul(l, l), l);
                 }
-                if (fabs(r.c0 - 4.0) < 1e-9) {
+                if ((r.c0 - 4.0)==0) {
                     PMPoly sq = PMPolyMul(l, l);
                     return PMPolyMul(sq, sq);
                 }
@@ -353,7 +354,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         case PMNodeFunction: {
             PMPoly arg = [self.left evaluatePolyForVar:varName error:error];
             if (!arg.valid) return arg;
-            if (fabs(arg.c1) < 1e-9 && fabs(arg.c2) < 1e-9 && fabs(arg.c3) < 1e-9 && fabs(arg.c4) < 1e-9) {
+            if ((arg.c1)==0 && (arg.c2)==0 && (arg.c3)==0 && (arg.c4)==0) {
                 double val = [self evaluateNumericWithError:error];
                 return PMPolyMakeConst(val);
             }
@@ -882,7 +883,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
             double lVal = [left evaluateNumericWithError:error];
             double rVal = [right evaluateNumericWithError:error];
             if (isfinite(lVal) && isfinite(rVal)) {
-                BOOL eq = fabs(lVal - rVal) < 1e-9;
+                BOOL eq = fabs(lVal-rVal)<=16*DBL_EPSILON*MAX(fabs(lVal),fabs(rVal));
                 PMMathSolution *sol = [[PMMathSolution alloc] init];
                 sol.solutionId = PMUniqueIdentifier();
                 sol.date = [NSDate date];
@@ -998,8 +999,8 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     NSMutableArray *steps = [NSMutableArray array];
 
     // Check for pure 4th power equation: a4*x^4 + c = 0
-    if (fabs(a4) > 1e-9) {
-        if (fabs(a3) > 1e-9 || fabs(a) > 1e-9 || fabs(b) > 1e-9) {
+    if ((a4)!=0) {
+        if ((a3)!=0 || (a)!=0 || (b)!=0) {
             if (error) *error = [NSError errorWithDomain:@"PMOfflineSolver" code:8 userInfo:@{NSLocalizedDescriptionKey: @"General quartic equations not supported offline"}];
             return nil;
         }
@@ -1033,7 +1034,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
                                        [NSString stringWithFormat:@"Since the exponent is even and value is positive, there are two real roots: ±%@.", rootStr];
             [steps addObject:s3];
             sol.solutionLatex = [NSString stringWithFormat:@"%@ = \\pm %@", varName, rootStr];
-        } else if (fabs(val) <= 1e-9) {
+        } else if ((val)==0) {
             PMStep *s3 = [[PMStep alloc] init];
             s3.stepNumber = 3;
             s3.title = isCzech ? @"Nulový kořen" : @"Zero Root";
@@ -1055,8 +1056,8 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     }
 
     // Check for pure cubic equation: a3*x^3 + c = 0
-    if (fabs(a3) > 1e-9) {
-        if (fabs(a) > 1e-9 || fabs(b) > 1e-9) {
+    if ((a3)!=0) {
+        if ((a)!=0 || (b)!=0) {
             if (error) *error = [NSError errorWithDomain:@"PMOfflineSolver" code:9 userInfo:@{NSLocalizedDescriptionKey: @"General cubic equations not supported offline"}];
             return nil;
         }
@@ -1094,7 +1095,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
         return sol;
     }
 
-    if (fabs(a) < 1e-9) {
+    if ((a)==0) {
         // Linear Equation: b*x + c = 0 => b*x = -c
         sol.summary = isCzech ? [NSString stringWithFormat:@"Lineární rovnice pro %@", varName] :
                                 [NSString stringWithFormat:@"Linear equation solved for %@", varName];
@@ -1108,8 +1109,8 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
                                    [NSString stringWithFormat:@"Solve the linear equation for %@ by isolating terms.", varName];
         [steps addObject:s1];
 
-        if (fabs(b) < 1e-9) {
-            if (fabs(c) < 1e-9) {
+        if ((b)==0) {
+            if ((c)==0) {
                 sol.solutionLatex = isCzech ? [NSString stringWithFormat:@"%@ \\in \\mathbb{R}", varName] :
                                               [NSString stringWithFormat:@"%@ \\in \\mathbb{R} \\text{ (All real numbers)}", varName];
                 PMStep *s2 = [[PMStep alloc] init];
@@ -1139,7 +1140,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
             s2.stepNumber = 2;
             s2.title = isCzech ? @"Převod konstanty na pravou stranu" : @"Move Constant to Right Side";
 
-            if (fabs(b - 1.0) < 1e-9) {
+            if ((b - 1.0)==0) {
                 s2.latex = [NSString stringWithFormat:@"%@ = %@", varName, negCStr];
                 s2.explanation = isCzech ? [NSString stringWithFormat:@"Převodem konstanty získáme řešení: %@ = %@.", varName, ansStr] :
                                            [NSString stringWithFormat:@"Isolating the variable gives: %@ = %@.", varName, ansStr];
@@ -1190,6 +1191,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
 
         // Step 2: Discriminant D = b^2 - 4ac
         double D = b * b - 4.0 * a * c;
+        if(!isfinite(D))return nil;
         PMStep *s2 = [[PMStep alloc] init];
         s2.stepNumber = 2;
         s2.title = isCzech ? @"Výpočet diskriminantu D" : @"Calculate Discriminant D";
@@ -1201,7 +1203,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
         [steps addObject:s2];
 
         // Step 3: Roots
-        if (D > 1e-9) {
+        if (D > 0) {
             double sqrtD = sqrt(D);
             double x1 = (-b + sqrtD) / (2.0 * a);
             double x2 = (-b - sqrtD) / (2.0 * a);
@@ -1225,7 +1227,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
             [steps addObject:s4];
 
             sol.solutionLatex = [NSString stringWithFormat:@"%@_1 = %@, \\quad %@_2 = %@", varName, x1Str, varName, x2Str];
-        } else if (fabs(D) <= 1e-9) {
+        } else if ((D)==0) {
             double x = -b / (2.0 * a);
             NSString *xStr = formatFractionOrDouble(x);
 
@@ -1246,7 +1248,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
             NSString *imagStr = formatFractionOrDouble(fabs(imagPart));
 
             NSString *complexRootsLatex;
-            if (fabs(realPart) < 1e-9) {
+            if ((realPart)==0) {
                 if (fabs(fabs(imagPart) - 1.0) < 1e-9) {
                     complexRootsLatex = @"\\pm i";
                 } else {

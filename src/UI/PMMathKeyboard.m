@@ -270,6 +270,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
     _solving=solving;self.solveButton.enabled=!solving;
     self.keypadContainer.userInteractionEnabled=!solving;
     self.rawTextField.enabled=!solving;
+    if(!solving && self.isViewLoaded && self.view.window)[self.rawTextField becomeFirstResponder];
 }
 
 - (void)viewDidLoad
