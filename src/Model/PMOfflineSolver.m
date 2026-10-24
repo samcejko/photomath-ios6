@@ -404,7 +404,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
     if (!self.input.length || self.input.length>4096) return nil;
     PMNode *node=[self parseExpression];
     [self skipWhitespace];
-    if (self.invalid || self.currentChar || !node) return nil;
+    if (self.invalid || self.currentChar || self.pos<(NSInteger)self.input.length || !node) return nil;
     NSMutableArray *nodes=[NSMutableArray arrayWithObject:node],*levels=[NSMutableArray arrayWithObject:@1];
     for (NSUInteger i=0;i<nodes.count;i++) {
         NSUInteger depth=[[levels objectAtIndex:i] unsignedIntegerValue];

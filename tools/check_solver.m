@@ -58,6 +58,8 @@ int main(void) { @autoreleasepool {
     Check([[PMOfflineSolver solveProblem:@"1e-12*x=1" error:NULL].solutionLatex rangeOfString:@"1000000000000"].location!=NSNotFound,@"small coefficient is retained");
     Check([[PMOfflineSolver solveProblem:@"1e-12=0" error:NULL].summary rangeOfString:@"false"].location!=NSNotFound,@"small unequal numbers are unequal");
     Check([[PMOfflineSolver solveProblem:@"0.1x+0.2x=0.3x" error:NULL].solutionLatex rangeOfString:@"mathbb"].location!=NSNotFound,@"cancellation preserves polynomial identities");
+    unichar embeddedNUL[]={'1',0,'+','2'};NSError *nulError=nil;NSString *nulInput=[NSString stringWithCharacters:embeddedNUL length:4];
+    Check(![PMOfflineSolver solveProblem:nulInput error:&nulError] && nulError!=nil,@"embedded NUL cannot truncate an expression");
     PMMathSolution *tiny=[PMOfflineSolver solveProblem:@"1e-8" error:NULL];Check(![tiny.solutionLatex isEqualToString:@"0"],@"small results retain significant digits");
     [PMSettings shared].solutionLanguage=@"cs";Check([[PMOfflineSolver solveProblem:@"2+2" error:NULL].summary rangeOfString:@"hodnota"].location!=NSNotFound,@"Czech solution");
     printf("Solver and graph checks passed: %lu\n",(unsigned long)checks);
