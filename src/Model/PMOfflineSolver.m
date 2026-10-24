@@ -920,7 +920,14 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
         }
     } else if (sides.count == 1 && varName) {
         // User entered expression with variable (e.g. x^2 - 5x + 6) -> solve for roots (LHS = 0)
-        return [self solveEquationWithLHS:clean rhs:@"0" varName:varName originalLatex:problemLatex isCzech:isCzech error:error];
+        PMMathSolution *roots=[self solveEquationWithLHS:clean rhs:@"0" varName:varName originalLatex:problemLatex isCzech:isCzech error:error];
+        if(roots)return roots;
+        if([self graphFunctionForProblem:problemLatex]) {
+            if(error)*error=nil;
+            PMMathSolution *graph=[self solveValidatedProblem:[@"y=" stringByAppendingString:problemLatex] error:error];
+            graph.problemLatex=problemLatex;return graph;
+        }
+        return nil;
     }
 
     // Pure numeric expression evaluation

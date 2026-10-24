@@ -68,7 +68,7 @@ Local PowerShell helpers (Windows):
 
 ## Offline editor and graphs
 
-Typed numeric expressions, linear/quadratic equations and simple isolated cubic/fourth powers can be solved locally. Incomplete formulas, domain errors, unsupported equations and results outside the supported number range return an explanation; the editor and its draft remain available. A trailing `=` or `=?` evaluates a numeric expression. Variable expressions without `=` keep the existing roots-of-expression convention.
+Typed numeric expressions, linear/quadratic equations and simple isolated cubic/fourth powers can be solved locally. Incomplete formulas, domain errors, unsupported equations and results outside the supported number range return an explanation; the editor and its draft remain available. A trailing `=` or `=?` evaluates a numeric expression. Supported polynomial expressions without `=` keep the existing roots-of-expression convention; other supported one-variable expressions can return a function graph without claiming to find symbolic roots.
 
 The raw input has a visible native caret, cursor arrows and Next Field navigation. Empty fractions, roots and powers receive preview-only square placeholders immediately. They never enter the saved or solved expression. Drafts survive reopening the editor.
 

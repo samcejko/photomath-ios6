@@ -63,7 +63,7 @@ BOOL PMHandleDebugCommand(PMAppDelegate *app,NSString *target,NSString *query)
             NSMutableArray *samples=[NSMutableArray array];for(NSNumber *x in @[@-2,@0,@2]){double y=[function valueAtX:x.doubleValue];[samples addObject:@{@"x":x,@"y":isfinite(y)?(id)@(y):(id)[NSNull null]}];}[result setObject:samples forKey:@"samples"];
             [result setObject:[[top valueForKey:@"canvas"] valueForKey:@"halfRange"] forKey:@"halfRange"];
         } else if([NSStringFromClass(top.class) isEqualToString:@"PMSolutionViewController"]) {
-            PMMathSolution *solution=[top valueForKey:@"solution"];[result setObject:solution.problemLatex ?: @"" forKey:@"problem"];[result setObject:solution.solutionLatex ?: @"" forKey:@"result"];[result setObject:@(solution.steps.count) forKey:@"steps"];
+            PMMathSolution *solution=[top valueForKey:@"solution"];[result setObject:solution.solutionId ?: @"" forKey:@"solutionId"];[result setObject:solution.problemLatex ?: @"" forKey:@"problem"];[result setObject:solution.solutionLatex ?: @"" forKey:@"result"];[result setObject:@(solution.steps.count) forKey:@"steps"];
         }
         [[NSJSONSerialization dataWithJSONObject:result options:0 error:NULL] writeToFile:[NSTemporaryDirectory() stringByAppendingPathComponent:@"shuttercalc-check.json"] atomically:YES];return YES;
     }

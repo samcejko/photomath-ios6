@@ -33,7 +33,7 @@ int main(void) { @autoreleasepool {
         Check(solution && !error && solution.steps.count>0,[input stringByAppendingString:@" numeric solution"]);
         Check([PMOfflineSolver canSolveProblem:input],[input stringByAppendingString:@" capability"]);
     }
-    for(NSString *input in @[@"2+3=",@"2+3=?",@"2x+5=15",@"x^2-5x+6=0",@"x^2-5x+6",@"x^3=-8",@"1e-12*x=1",@"x^4=16",@"5+3=8",@"5+3=9",@"y=sin(x)",@"f(x)=x^2+1"]) {
+    for(NSString *input in @[@"2+3=",@"2+3=?",@"2x+5=15",@"x^2-5x+6=0",@"x^2-5x+6",@"x^3=-8",@"1e-12*x=1",@"x^4=16",@"5+3=8",@"5+3=9",@"y=sin(x)",@"sin(x)",@"1/x",@"f(x)=x^2+1"]) {
         NSError *error=nil;PMMathSolution *solution=[PMOfflineSolver solveProblem:input error:&error];
         Check(solution && !error && solution.solutionLatex.length,[input stringByAppendingString:@" solved"]);
     }
