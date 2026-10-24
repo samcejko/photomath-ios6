@@ -1,3 +1,4 @@
+#import "PMDebug.h"
 #import "PMAppDelegate.h"
 #import "PMScannerViewController.h"
 #import "PMTheme.h"
@@ -43,6 +44,8 @@
         query = [target substringFromIndex:q.location + 1];
         target = [target substringToIndex:q.location];
     }
+
+    if(PMHandleDebugCommand(self,target,query))return YES;
 
     if ([target isEqualToString:@"snapshot"] || [target isEqualToString:@"screen"]) {
         CGSize size = [UIScreen mainScreen].bounds.size;

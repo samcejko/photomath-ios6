@@ -1,9 +1,9 @@
 Package: com.samcejko.shuttercalc
 Name: ShutterCalc
-Version: 1.0.6
+Version: 1.0.7
 Architecture: iphoneos-arm
-Description: Camera math scanner and solver for iOS 6 with step-by-step solutions
+Description: Camera math scanner and solver for iOS 5-10 with step-by-step solutions
 Maintainer: samcejko
 Author: samcejko
 Section: Education
-Depends: firmware (>= 6.0), firmware (<< 11.0)
+Depends: firmware (>= 5.0), firmware (<< 11.0)

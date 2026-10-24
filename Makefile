@@ -1,5 +1,5 @@
 # Photomath - smart math camera solver for jailbroken iOS. One source tree, two packages (Theos):
-#   make package                               armv7 for iOS 6.x (the iOS 9.3 SDK, deployment target 6.0)
+#   make package                               armv7 for iOS 5-10 (the iOS 9.3 SDK, deployment target 5.0)
 #   make package THEOS_PACKAGE_SCHEME=rootless arm64 for iOS 14-17 (the iOS 16.5 SDK, deployment target 14.0):
 #                                              the .deb for rootless jailbreaks, the IPA for TrollStore
 # (`make clean` between the two; CI builds both, see .github/workflows/build.yml)
@@ -8,7 +8,7 @@ ifeq ($(THEOS_PACKAGE_SCHEME),rootless)
 TARGET := iphone:clang:16.5:14.0
 ARCHS := arm64
 else
-TARGET := iphone:clang:9.3:6.0
+TARGET := iphone:clang:9.3:5.0
 ARCHS := armv7
 endif
 DEBUG ?= 0

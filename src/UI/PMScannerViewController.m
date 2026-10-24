@@ -466,8 +466,11 @@
 
 - (void)processEquationWithImage:(UIImage *)image manualLatex:(NSString *)manualLatex
 {
+    NSString *documents=[PMUtils documentsPath];
+    NSFileManager *files=[NSFileManager defaultManager];
+    BOOL offlineOnly=[files fileExistsAtPath:[documents stringByAppendingPathComponent:@"debug"]] && [files fileExistsAtPath:[documents stringByAppendingPathComponent:@"offline-only"]];
     // If entered via keyboard and preferOfflineSolver is enabled, try offline solver first (100% offline & instant)
-    if (manualLatex.length > 0 && ([PMSettings shared].preferOfflineSolver || ![PMSettings shared].hasAPIKey)) {
+    if (manualLatex.length > 0 && ([PMSettings shared].preferOfflineSolver || ![PMSettings shared].hasAPIKey || offlineOnly)) {
         NSError *offlineErr = nil;
         PMMathSolution *sol = [PMOfflineSolver solveProblem:manualLatex error:&offlineErr];
         if (sol) {
@@ -480,7 +483,7 @@
             [self.navigationController pushViewController:svc animated:YES];
             return;
         }
-        if(![PMSettings shared].hasAPIKey) {
+        if(![PMSettings shared].hasAPIKey || offlineOnly) {
             [self hideHUD];
             [PMUtils alertWithTitle:L(@"Solving Failed") message:offlineErr.localizedDescription ?: L(@"This problem is not supported offline. Your input has been kept.")];
             return;

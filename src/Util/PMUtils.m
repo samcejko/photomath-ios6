@@ -1,3 +1,4 @@
+#import "RetroUIKit.h"
 #import "PMUtils.h"
 #import "PMCommon.h"
 #import <ImageIO/ImageIO.h>
@@ -255,7 +256,7 @@ static const char kBase64Table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr
 + (void)alertWithTitle:(NSString *)title message:(NSString *)message
 {
     PMMain(^{
-        UIAlertView *av = [[UIAlertView alloc] initWithTitle:title
+        UIAlertView *av = [[RetroAlertView alloc] initWithTitle:title
                                                      message:message
                                                     delegate:nil
                                            cancelButtonTitle:L(@"OK")

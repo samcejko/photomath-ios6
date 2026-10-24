@@ -1,3 +1,4 @@
+#import "RetroUIKit.h"
 #import "PMModelPickerViewController.h"
 #import "PMModelCatalog.h"
 #import "PMSettings.h"
@@ -128,6 +129,15 @@
 {
     if (section == 0) return 1; // Automatic
     return self.filteredModels.count;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section
+{
+    return RetroSectionHeader([self tableView:tableView titleForHeaderInSection:section],tableView.bounds.size.width);
+}
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section
+{
+    return [self tableView:tableView titleForHeaderInSection:section].length?34:0;
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section

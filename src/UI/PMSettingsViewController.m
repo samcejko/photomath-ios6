@@ -1,3 +1,4 @@
+#import "RetroUIKit.h"
 #import "PMSettingsViewController.h"
 #import "PMAPIKeyViewController.h"
 #import "PMModelPickerViewController.h"
@@ -95,6 +96,15 @@ enum {
     }
 }
 
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section
+{
+    return RetroSectionHeader([self tableView:tableView titleForHeaderInSection:section],tableView.bounds.size.width);
+}
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section
+{
+    return [self tableView:tableView titleForHeaderInSection:section].length?34:0;
+}
+
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
 {
     switch (section) {
@@ -158,7 +168,7 @@ enum {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
             if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
             cell.textLabel.text = L(@"Offline Engine (Instant)");
-            UISwitch *sw = [[UISwitch alloc] init];
+            UISwitch *sw = RetroMakeSwitch();
             sw.on = [PMSettings shared].preferOfflineSolver;
             [sw addTarget:self action:@selector(offlineSwitchChanged:) forControlEvents:UIControlEventValueChanged];
             cell.accessoryView = sw;
@@ -168,7 +178,7 @@ enum {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
             if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
             cell.textLabel.text = L(@"Auto Fallback on Error");
-            UISwitch *sw = [[UISwitch alloc] init];
+            UISwitch *sw = RetroMakeSwitch();
             sw.on = [PMSettings shared].autoFallback;
             [sw addTarget:self action:@selector(fallbackSwitchChanged:) forControlEvents:UIControlEventValueChanged];
             cell.accessoryView = sw;
@@ -178,7 +188,7 @@ enum {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
             if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
             cell.textLabel.text = L(@"Only Free Models");
-            UISwitch *sw = [[UISwitch alloc] init];
+            UISwitch *sw = RetroMakeSwitch();
             sw.on = [PMSettings shared].freeOnly;
             [sw addTarget:self action:@selector(freeOnlySwitchChanged:) forControlEvents:UIControlEventValueChanged];
             cell.accessoryView = sw;
@@ -188,7 +198,7 @@ enum {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
             if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
             cell.textLabel.text = L(@"Show Steps by Default");
-            UISwitch *sw = [[UISwitch alloc] init];
+            UISwitch *sw = RetroMakeSwitch();
             sw.on = [PMSettings shared].showStepByStep;
             [sw addTarget:self action:@selector(stepsSwitchChanged:) forControlEvents:UIControlEventValueChanged];
             cell.accessoryView = sw;
@@ -202,7 +212,7 @@ enum {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
             if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
             cell.textLabel.text = L(@"Dark Theme");
-            UISwitch *sw = [[UISwitch alloc] init];
+            UISwitch *sw = RetroMakeSwitch();
             sw.on = [PMSettings shared].darkTheme;
             [sw addTarget:self action:@selector(darkThemeSwitchChanged:) forControlEvents:UIControlEventValueChanged];
             cell.accessoryView = sw;
@@ -212,7 +222,7 @@ enum {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellDefault];
             if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellDefault];
             cell.textLabel.text = L(@"Verify TLS Certificates");
-            UISwitch *sw = [[UISwitch alloc] init];
+            UISwitch *sw = RetroMakeSwitch();
             sw.on = [PMSettings shared].verifyTLS;
             [sw addTarget:self action:@selector(tlsSwitchChanged:) forControlEvents:UIControlEventValueChanged];
             cell.accessoryView = sw;
