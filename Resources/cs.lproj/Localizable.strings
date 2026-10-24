@@ -82,3 +82,17 @@
 "No API key found in AI Chat." = "V aplikaci AI Chat nebyl nalezen žádný API klíč.";
 "OpenRouter key detected in AI Chat app. Tap 'Import from AI Chat' to use it." = "V aplikaci AI Chat byl detekován OpenRouter klíč. Klepnutím na 'Importovat z AI Chatu' jej použijete.";
 "OK" = "OK";
+
+"Next Field" = "Další pole";
+"Complete the formula to preview it." = "Pro náhled doplň vzorec.";
+"Check the expression: complete the brackets and fill every part of the formula. This problem may require online solving." = "Zkontroluj výraz: uzavři závorky a vyplň všechny části vzorce. Tento příklad může vyžadovat online výpočet.";
+"This problem is not supported offline. Your input has been kept." = "Tento příklad není podporován offline. Zadání zůstalo zachované.";
+"Graph" = "Graf";
+"View Graph" = "Zobrazit graf";
+"Function graph" = "Graf funkce";
+"Drag to move. Pinch or use +/− to zoom. Gaps indicate undefined values." = "Tažením posuneš graf, dvěma prsty nebo +/− změníš měřítko. Mezery značí nedefinované hodnoty.";
+"Zoom in" = "Přiblížit";
+"Zoom out" = "Oddálit";
+"Reset" = "Obnovit";
+"Move cursor left" = "Posunout kurzor vlevo";
+"Move cursor right" = "Posunout kurzor vpravo";

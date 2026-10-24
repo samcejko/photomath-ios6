@@ -82,3 +82,17 @@
 "No API key found in AI Chat." = "No API key found in AI Chat.";
 "OpenRouter key detected in AI Chat app. Tap 'Import from AI Chat' to use it." = "OpenRouter key detected in AI Chat app. Tap 'Import from AI Chat' to use it.";
 "OK" = "OK";
+
+"Next Field" = "Next Field";
+"Complete the formula to preview it." = "Complete the formula to preview it.";
+"Check the expression: complete the brackets and fill every part of the formula. This problem may require online solving." = "Check the expression: complete the brackets and fill every part of the formula. This problem may require online solving.";
+"This problem is not supported offline. Your input has been kept." = "This problem is not supported offline. Your input has been kept.";
+"Graph" = "Graph";
+"View Graph" = "View Graph";
+"Function graph" = "Function graph";
+"Drag to move. Pinch or use +/− to zoom. Gaps indicate undefined values." = "Drag to move. Pinch or use +/− to zoom. Gaps indicate undefined values.";
+"Zoom in" = "Zoom in";
+"Zoom out" = "Zoom out";
+"Reset" = "Reset";
+"Move cursor left" = "Move cursor left";
+"Move cursor right" = "Move cursor right";

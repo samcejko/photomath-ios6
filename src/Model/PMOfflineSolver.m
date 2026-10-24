@@ -433,7 +433,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 {
     PMNode *node = [self parseTerm];
     [self skipWhitespace];
-    while (self.currentChar == '+' || self.currentChar == '-') {
+    while (!self.invalid && (self.currentChar == '+' || self.currentChar == '-')) {
         NSString *op = [NSString stringWithCharacters:&_currentChar length:1];
         [self advance];
         PMNode *right = [self parseTerm];
@@ -452,12 +452,12 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 {
     PMNode *node = [self parseUnary];
     [self skipWhitespace];
-    while (self.currentChar == '*' || self.currentChar == '/' || self.currentChar == '%' ||
+    while (!self.invalid && (self.currentChar == '*' || self.currentChar == '/' || self.currentChar == '%' ||
            (self.currentChar >= 'a' && self.currentChar <= 'z') ||
            (self.currentChar >= 'A' && self.currentChar <= 'Z') ||
            self.currentChar == '(' || self.currentChar == '[' || self.currentChar == '{' ||
            self.currentChar == '\\' || self.currentChar == 0x03C0 || (self.currentChar=='|' && self.absoluteDepth==0) ||
-           ((self.currentChar>='0' && self.currentChar<='9') && node.type!=PMNodeNumber)) {
+           ((self.currentChar>='0' && self.currentChar<='9') && node.type!=PMNodeNumber))) {
         NSString *op = @"*";
         if (self.currentChar == '*' || self.currentChar == '/' || self.currentChar == '%') {
             op = [NSString stringWithCharacters:&_currentChar length:1];
@@ -491,6 +491,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 - (PMNode *)parsePower
 {
     PMNode *node = [self parsePrimary];
+    if(self.invalid)return nil;
     [self skipWhitespace];
     if (self.currentChar == '!') {
         [self advance];

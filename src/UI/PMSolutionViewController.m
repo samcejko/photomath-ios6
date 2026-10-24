@@ -1,3 +1,5 @@
+#import "PMOfflineSolver.h"
+#import "PMGraphViewController.h"
 #import "PMSolutionViewController.h"
 #import "PMStepCell.h"
 #import "PMTheme.h"
@@ -21,6 +23,8 @@
 @property (nonatomic, strong) UIView *footerView;
 @property (nonatomic, strong) UILabel *modelLabel;
 @property (nonatomic, strong) UIButton *clipboardButton;
+@property (nonatomic, strong) UIButton *graphButton;
+@property (nonatomic, strong) PMGraphFunction *graphFunction;
 @end
 
 @implementation PMSolutionViewController
@@ -30,6 +34,7 @@
     self = [super init];
     if (self) {
         _solution = solution;
+        _graphFunction = [PMOfflineSolver graphFunctionForProblem:solution.problemLatex];
         self.title = L(@"Solution");
     }
     return self;
@@ -69,7 +74,7 @@
 - (void)setupHeaderView
 {
     CGFloat w = self.view.bounds.size.width;
-    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, w, 240)];
+    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, w, self.graphFunction?288:240)];
     header.backgroundColor = [UIColor clearColor];
 
     BOOL isDark = [PMSettings shared].darkTheme;
@@ -126,8 +131,14 @@
     self.resultMathLabel.latex = self.solution.solutionLatex.length ? self.solution.solutionLatex : @"";
     [self.resultCard addSubview:self.resultMathLabel];
 
+    if(self.graphFunction) {
+        self.graphButton=[UIButton buttonWithType:UIButtonTypeCustom];self.graphButton.frame=CGRectMake(10,202,w-20,36);
+        [self.graphButton setTitle:L(@"View Graph") forState:UIControlStateNormal];self.graphButton.titleLabel.font=[UIFont boldSystemFontOfSize:14];
+        [self.graphButton setBackgroundImage:[[PMTheme shared] glossyButtonImageWithColor:[[PMTheme shared] accentColor] highlighted:NO] forState:UIControlStateNormal];
+        [self.graphButton addTarget:self action:@selector(openGraph:) forControlEvents:UIControlEventTouchUpInside];[header addSubview:self.graphButton];
+    }
     // Steps Section Header Label
-    self.stepsTitle = [[UILabel alloc] initWithFrame:CGRectMake(14, 202, w - 28, 26)];
+    self.stepsTitle = [[UILabel alloc] initWithFrame:CGRectMake(14, self.graphFunction?250:202, w - 28, 26)];
     self.stepsTitle.text = [NSString stringWithFormat:@"%@ (%lu)", L(@"Step-by-Step Solution"), (unsigned long)self.solution.steps.count];
     self.stepsTitle.font = [UIFont boldSystemFontOfSize:15.0f];
     self.stepsTitle.textColor = isDark ? [UIColor whiteColor] : [UIColor colorWithRed:0.20f green:0.22f blue:0.28f alpha:1.0f];
@@ -178,7 +189,8 @@
     if (w <= 0) return;
 
     if (self.headerView && fabs(self.headerView.frame.size.width - w) > 1.0f) {
-        self.headerView.frame = CGRectMake(0, 0, w, 240);
+        self.headerView.frame = CGRectMake(0, 0, w, self.graphFunction?288:240);
+        self.graphButton.frame=CGRectMake(10,202,w-20,36);
         self.problemCard.frame = CGRectMake(10, 10, w - 20, 85);
         self.editButton.frame = CGRectMake(w - 20 - 75, 6, 65, 22);
         self.problemMathLabel.frame = CGRectMake(12, 30, w - 44, 45);
@@ -186,7 +198,7 @@
         self.resultCard.frame = CGRectMake(10, 105, w - 20, 85);
         self.resultMathLabel.frame = CGRectMake(12, 28, w - 44, 48);
 
-        self.stepsTitle.frame = CGRectMake(14, 202, w - 28, 26);
+        self.stepsTitle.frame = CGRectMake(14, self.graphFunction?250:202, w - 28, 26);
         self.tableView.tableHeaderView = self.headerView;
     }
 
@@ -233,11 +245,15 @@
 
 #pragma mark - Actions
 
+- (void)openGraph:(id)sender
+{
+    if(self.graphFunction)[self.navigationController pushViewController:[[PMGraphViewController alloc] initWithFunction:self.graphFunction] animated:YES];
+}
+
 - (void)editProblemTapped:(id)sender
 {
     if (self.onEditProblemRequested) {
         self.onEditProblemRequested(self.solution.problemLatex);
-        [self.navigationController popViewControllerAnimated:YES];
     }
 }
 

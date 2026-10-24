@@ -2,6 +2,7 @@
 #import <math.h>
 #import "PMOfflineSolver.h"
 #import "PMSettings.h"
+#import "PMMathEditing.h"
 
 // The solver uses only these data objects and the language preference. Network,
 // image persistence and UIKit are deliberately absent from this native test.
@@ -17,6 +18,7 @@ static void Check(BOOL condition, NSString *message) {
     checks++;if(!condition){fprintf(stderr,"FAIL: %s\n",message.UTF8String);exit(1);}
 }
 static void Value(NSString *input,double x,double expected) {
+    printf("Expression: %s\n",input.UTF8String);fflush(stdout);
     PMGraphFunction *graph=[PMOfflineSolver graphFunctionForProblem:input];
     Check(graph!=nil,[input stringByAppendingString:@" should parse"]);
     double result=[graph valueAtX:x];
@@ -47,8 +49,11 @@ int main(void) { @autoreleasepool {
     Check(isnan([root valueAtX:-1]),@"negative square root is a graph gap");
     for(NSString *input in @[@"x+y",@"y=",@"x=1=2",@"sin()",@"\\frac{}{}"])Check(![PMOfflineSolver graphFunctionForProblem:input],@"invalid graph rejected");
     for(NSString *input in @[[[@"(" stringByPaddingToLength:200 withString:@"(" startingAtIndex:0] stringByAppendingString:@"1"],[@"-" stringByPaddingToLength:1000 withString:@"-" startingAtIndex:0],[@"1+" stringByPaddingToLength:3000 withString:@"1+" startingAtIndex:0]]) {
-        NSError *error=nil;Check(![PMOfflineSolver solveProblem:input error:&error] && error!=nil,@"bounded input/depth");
+        puts("Checking bounded input");fflush(stdout);NSError *error=nil;Check(![PMOfflineSolver solveProblem:input error:&error] && error!=nil,@"bounded input/depth");
     }
+    Check([[PMMathEditing previewForLatex:@"\\frac{}{}"] isEqualToString:@"\\frac{\\square}{\\square}"],@"empty fraction is visible immediately");
+    Check([[PMMathEditing previewForLatex:@"x^{}"] isEqualToString:@"x^{\\square}"],@"empty power is visible immediately");
+    Check([[PMMathEditing previewForLatex:@"\\sqrt{"] isEqualToString:@"\\sqrt{\\square}"],@"unfinished root has preview placeholder");
     PMMathSolution *tiny=[PMOfflineSolver solveProblem:@"1e-8" error:NULL];Check(![tiny.solutionLatex isEqualToString:@"0"],@"small results retain significant digits");
     [PMSettings shared].solutionLanguage=@"cs";Check([[PMOfflineSolver solveProblem:@"2+2" error:NULL].summary rangeOfString:@"hodnota"].location!=NSNotFound,@"Czech solution");
     printf("Solver and graph checks passed: %lu\n",(unsigned long)checks);

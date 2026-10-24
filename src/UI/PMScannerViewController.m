@@ -39,6 +39,7 @@
 @property (nonatomic, strong) UIActivityIndicatorView *hudSpinner;
 @property (nonatomic, strong) UILabel *hudLabel;
 @property (nonatomic) BOOL isSolving;
+@property (nonatomic, weak) PMMathKeyboard *pendingEditor;
 
 @end
 
@@ -347,6 +348,8 @@
 - (void)showHUDWithText:(NSString *)text
 {
     self.isSolving = YES;
+    [self.navigationController.view addSubview:self.hudView];
+    self.hudView.center=CGPointMake(CGRectGetMidX(self.navigationController.view.bounds),CGRectGetMidY(self.navigationController.view.bounds));
     self.hudLabel.text = text;
     [self.hudSpinner startAnimating];
     self.hudView.hidden = NO;
@@ -359,6 +362,8 @@
     [self.hudSpinner stopAnimating];
     self.hudView.hidden = YES;
     self.shutterButton.enabled = YES;
+    self.pendingEditor.solving=NO;
+    [self.hudView removeFromSuperview];
 }
 
 #pragma mark - Camera Actions
@@ -462,7 +467,7 @@
 - (void)processEquationWithImage:(UIImage *)image manualLatex:(NSString *)manualLatex
 {
     // If entered via keyboard and preferOfflineSolver is enabled, try offline solver first (100% offline & instant)
-    if (manualLatex.length > 0 && [PMSettings shared].preferOfflineSolver && [PMOfflineSolver canSolveProblem:manualLatex]) {
+    if (manualLatex.length > 0 && ([PMSettings shared].preferOfflineSolver || ![PMSettings shared].hasAPIKey)) {
         NSError *offlineErr = nil;
         PMMathSolution *sol = [PMOfflineSolver solveProblem:manualLatex error:&offlineErr];
         if (sol) {
@@ -473,6 +478,11 @@
                 [self openKeyboardWithLatex:problemLatex];
             };
             [self.navigationController pushViewController:svc animated:YES];
+            return;
+        }
+        if(![PMSettings shared].hasAPIKey) {
+            [self hideHUD];
+            [PMUtils alertWithTitle:L(@"Solving Failed") message:offlineErr.localizedDescription ?: L(@"This problem is not supported offline. Your input has been kept.")];
             return;
         }
     }
@@ -600,9 +610,14 @@
 - (void)openKeyboardWithLatex:(NSString *)latex
 {
     PMMathKeyboard *kb = [[PMMathKeyboard alloc] initWithInitialLatex:latex];
+    __weak PMScannerViewController *owner=self;
+    __weak PMMathKeyboard *editor=kb;
     kb.onSolveRequested = ^(NSString *enteredLatex) {
-        [self showHUDWithText:L(@"Solving equation...")];
-        [self processEquationWithImage:nil manualLatex:enteredLatex];
+        PMScannerViewController *scanner=owner;
+        if(!scanner || scanner.isSolving)return;
+        scanner.pendingEditor=editor;editor.solving=YES;
+        [scanner showHUDWithText:L(@"Solving equation...")];
+        [scanner processEquationWithImage:nil manualLatex:enteredLatex];
     };
     [self.navigationController pushViewController:kb animated:YES];
 }

@@ -1,3 +1,4 @@
+#import "PMMathEditing.h"
 #import "PMMathKeyboard.h"
 #import "PMTheme.h"
 #import "PMCommon.h"
@@ -7,6 +8,8 @@
 #import "MTMathUILabel.h"
 #import <QuartzCore/QuartzCore.h>
 #import <ctype.h>
+
+static BOOL PMMathBaseCharacter(unichar c) { return (c>='a'&&c<='z') || (c>='A'&&c<='Z') || (c>='0'&&c<='9') || c==0x03c0 || c==')' || c==']' || c=='}'; }
 
 #pragma mark - Callout View
 
@@ -210,11 +213,13 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
 
 #pragma mark - PMMathKeyboard
 
-@interface PMMathKeyboard () <UIScrollViewDelegate>
+@interface PMMathKeyboard () <UIScrollViewDelegate, UITextFieldDelegate>
 @property (nonatomic, strong) UIScrollView *scrollView;
 @property (nonatomic, strong) UIView *previewCard;
 @property (nonatomic, strong) UITextField *rawTextField;
 @property (nonatomic, strong) MTMathUILabel *mathPreviewLabel;
+@property (nonatomic, strong) UILabel *previewHint;
+@property (nonatomic) NSInteger selectedLength;
 @property (nonatomic, strong) UIButton *cursorLeftBtn;
 @property (nonatomic, strong) UIButton *cursorRightBtn;
 @property (nonatomic, strong) UISegmentedControl *modeSegment;
@@ -231,7 +236,8 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
 {
     self = [super init];
     if (self) {
-        _currentLatex = initialLatex.length ? [initialLatex copy] : @"";
+        NSString *draft=[[NSUserDefaults standardUserDefaults] stringForKey:@"PMMathDraftLatex"];
+        _currentLatex = initialLatex.length ? [initialLatex copy] : (draft ?: @"");
         _cursorPosition = _currentLatex.length;
         self.title = L(@"Math Editor");
         _currentButtons = [NSMutableArray array];
@@ -243,6 +249,27 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
 {
     [super viewWillAppear:animated];
     [self.navigationController setNavigationBarHidden:NO animated:animated];
+}
+
+- (void)viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    [self.rawTextField becomeFirstResponder];
+    [self updateMathPreview];
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    [self.rawTextField resignFirstResponder];
+    [self.activeCallout removeFromSuperview];self.activeCallout=nil;
+}
+
+- (void)setSolving:(BOOL)solving
+{
+    _solving=solving;self.solveButton.enabled=!solving;
+    self.keypadContainer.userInteractionEnabled=!solving;
+    self.rawTextField.enabled=!solving;
 }
 
 - (void)viewDidLoad
@@ -262,6 +289,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
     [self setupModeSegment];
     [self setupKeypad];
     [self updateMathPreview];
+    self.navigationItem.rightBarButtonItem=[[UIBarButtonItem alloc] initWithTitle:L(@"Next Field") style:UIBarButtonItemStyleBordered target:self action:@selector(nextField:)];
 }
 
 - (void)setupPreviewCard
@@ -279,14 +307,19 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
     self.rawTextField.font = [UIFont systemFontOfSize:13.0f];
     self.rawTextField.textColor = isDark ? [UIColor colorWithWhite:0.7f alpha:1.0f] : [UIColor colorWithWhite:0.4f alpha:1.0f];
     self.rawTextField.text = self.currentLatex;
+    self.rawTextField.delegate=self;
+    self.rawTextField.accessibilityIdentifier=@"MathInput";
     self.rawTextField.placeholder = L(@"Enter equation (e.g. 2x + 5 = 15)...");
     self.rawTextField.inputView = [[UIView alloc] initWithFrame:CGRectZero]; // Suppress system keyboard
     self.rawTextField.userInteractionEnabled = YES;
+    self.rawTextField.autocorrectionType=UITextAutocorrectionTypeNo;
+    self.rawTextField.autocapitalizationType=UITextAutocapitalizationTypeNone;
     [self.rawTextField addTarget:self action:@selector(textFieldCursorChanged:) forControlEvents:UIControlEventEditingChanged];
     [self.previewCard addSubview:self.rawTextField];
 
     // Drawn cursor navigation buttons
     self.cursorLeftBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    self.cursorLeftBtn.accessibilityLabel=L(@"Move cursor left");
     [self.cursorLeftBtn setImage:AuditDirectionIcon(@"left", [UIColor darkGrayColor]) forState:UIControlStateNormal];
     [self.cursorLeftBtn setTitleColor:[UIColor colorWithWhite:0.3f alpha:1.0f] forState:UIControlStateNormal];
     [self.cursorLeftBtn setTitleColor:[[PMTheme shared] accentColor] forState:UIControlStateHighlighted];
@@ -299,6 +332,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
     [self.previewCard addSubview:self.cursorLeftBtn];
 
     self.cursorRightBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    self.cursorRightBtn.accessibilityLabel=L(@"Move cursor right");
     [self.cursorRightBtn setImage:AuditDirectionIcon(@"right", [UIColor darkGrayColor]) forState:UIControlStateNormal];
     [self.cursorRightBtn setTitleColor:[UIColor colorWithWhite:0.3f alpha:1.0f] forState:UIControlStateNormal];
     [self.cursorRightBtn setTitleColor:[[PMTheme shared] accentColor] forState:UIControlStateHighlighted];
@@ -315,11 +349,14 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
     self.mathPreviewLabel.fontSize = 22.0f;
     self.mathPreviewLabel.textColor = isDark ? [UIColor whiteColor] : [UIColor colorWithRed:0.10f green:0.12f blue:0.18f alpha:1.0f];
     self.mathPreviewLabel.latex = self.currentLatex.length ? self.currentLatex : @"";
+    self.mathPreviewLabel.displayErrorInline=NO;
     [self.previewCard addSubview:self.mathPreviewLabel];
+    self.previewHint=[[UILabel alloc] initWithFrame:CGRectZero];self.previewHint.backgroundColor=[UIColor clearColor];self.previewHint.font=[UIFont systemFontOfSize:13];self.previewHint.textColor=self.rawTextField.textColor;self.previewHint.text=L(@"Complete the formula to preview it.");self.previewHint.numberOfLines=2;self.previewHint.hidden=YES;[self.previewCard addSubview:self.previewHint];
 }
 
 - (void)stepCursorLeft:(id)sender
 {
+    [self syncSelection];
     if (self.cursorPosition > 0) {
         self.cursorPosition--;
         [self updateMathPreview];
@@ -328,21 +365,40 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
 
 - (void)stepCursorRight:(id)sender
 {
+    [self syncSelection];
     if (self.cursorPosition < self.currentLatex.length) {
         self.cursorPosition++;
         [self updateMathPreview];
     }
 }
 
-- (void)textFieldCursorChanged:(UITextField *)tf
+- (void)syncSelection
 {
-    UITextRange *sel = tf.selectedTextRange;
-    if (sel) {
-        NSInteger offset = [tf offsetFromPosition:tf.beginningOfDocument toPosition:sel.start];
-        if (offset >= 0 && offset <= self.currentLatex.length) {
-            self.cursorPosition = offset;
-        }
+    UITextRange *range=self.rawTextField.selectedTextRange;
+    if(range) {
+        self.cursorPosition=MAX(0,MIN((NSInteger)self.currentLatex.length,[self.rawTextField offsetFromPosition:self.rawTextField.beginningOfDocument toPosition:range.start]));
+        self.selectedLength=MAX(0,[self.rawTextField offsetFromPosition:range.start toPosition:range.end]);
     }
+}
+- (void)textFieldCursorChanged:(UITextField *)field
+{
+    self.currentLatex=field.text ?: @"";[self syncSelection];[self updateMathPreview];
+}
+- (BOOL)textField:(UITextField *)field shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
+{
+    return range.location<=field.text.length && range.length<=field.text.length-range.location && field.text.length-range.length+string.length<=1024;
+}
+- (void)nextField:(id)sender
+{
+    [self syncSelection];
+    NSRange remaining=NSMakeRange(self.cursorPosition,self.currentLatex.length-self.cursorPosition);
+    NSRange empty=[self.currentLatex rangeOfString:@"{}" options:0 range:remaining];
+    if(empty.location!=NSNotFound)self.cursorPosition=empty.location+1;
+    else {
+        NSRange close=[self.currentLatex rangeOfString:@"}" options:0 range:remaining];
+        self.cursorPosition=close.location!=NSNotFound?close.location+1:self.currentLatex.length;
+    }
+    self.selectedLength=0;[self updateMathPreview];
 }
 
 - (void)setupModeSegment
@@ -406,6 +462,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
 
     self.mathPreviewLabel.frame = CGRectMake(10, 30, cardW - 20, cardH - 36);
     self.mathPreviewLabel.fontSize = compact ? 18.0f : 22.0f;
+    self.previewHint.frame=self.mathPreviewLabel.frame;
 
     CGFloat segH = compact ? 28.0f : 32.0f;
     CGFloat segY = CGRectGetMaxY(self.previewCard.frame) + 8.0f;
@@ -706,7 +763,8 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
 
 - (void)insertKeyOrCommand:(NSString *)key
 {
-    if (!key.length) return;
+    if (!key.length || self.solving) return;
+    [self syncSelection];
 
     if ([key isEqualToString:@"C"] || [key isEqualToString:@"CLEAR_ALL"]) {
         self.currentLatex = @"";
@@ -721,26 +779,12 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
         return;
     }
 
-    // Auto-step out of closing braces if typing an operator
-    BOOL isOperator = [key isEqualToString:@"+"] || [key isEqualToString:@"-"] ||
-                      [key isEqualToString:@"*"] || [key isEqualToString:@"/"] ||
-                      [key isEqualToString:@"="] || [key isEqualToString:@">"] ||
-                      [key isEqualToString:@"<"] || [key isEqualToString:@"\\le"] ||
-                      [key isEqualToString:@"\\ge"] || [key isEqualToString:@"\\ne"];
-
-    if (isOperator && self.cursorPosition < self.currentLatex.length) {
-        unichar nextC = [self.currentLatex characterAtIndex:self.cursorPosition];
-        if (nextC == '}' || nextC == ')' || nextC == ']') {
-            self.cursorPosition++; // Step out of brace before inserting operator
-        }
-    }
-
     // Exponentiation x^y
     if ([key isEqualToString:@"x^y"]) {
         BOOL hasBase = NO;
         if (self.cursorPosition > 0) {
             unichar prevC = [self.currentLatex characterAtIndex:self.cursorPosition - 1];
-            if (isalnum(prevC) || prevC == ')' || prevC == ']' || prevC == '}') {
+            if (PMMathBaseCharacter(prevC)) {
                 hasBase = YES;
             }
         }
@@ -764,7 +808,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
         BOOL hasBase = NO;
         if (self.cursorPosition > 0) {
             unichar prevC = [self.currentLatex characterAtIndex:self.cursorPosition - 1];
-            if (isalpha(prevC) || prevC == ')' || prevC == ']' || prevC == '}') {
+            if (PMMathBaseCharacter(prevC)) {
                 hasBase = YES;
             }
         }
@@ -782,7 +826,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
         BOOL hasBase = NO;
         if (self.cursorPosition > 0) {
             unichar prevC = [self.currentLatex characterAtIndex:self.cursorPosition - 1];
-            if (isalpha(prevC) || prevC == ')' || prevC == ']' || prevC == '}') {
+            if (PMMathBaseCharacter(prevC)) {
                 hasBase = YES;
             }
         }
@@ -800,7 +844,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
         BOOL hasBase = NO;
         if (self.cursorPosition > 0) {
             unichar prevC = [self.currentLatex characterAtIndex:self.cursorPosition - 1];
-            if (isalpha(prevC) || prevC == ')' || prevC == ']' || prevC == '}') {
+            if (PMMathBaseCharacter(prevC)) {
                 hasBase = YES;
             }
         }
@@ -870,19 +914,25 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
     if (self.cursorPosition > self.currentLatex.length) self.cursorPosition = self.currentLatex.length;
 
     NSString *left = [self.currentLatex substringToIndex:self.cursorPosition];
-    NSString *right = [self.currentLatex substringFromIndex:self.cursorPosition];
-
+    NSInteger length=MIN(self.selectedLength,(NSInteger)self.currentLatex.length-self.cursorPosition);
+    NSString *right = [self.currentLatex substringFromIndex:self.cursorPosition+length];
+    if(left.length+text.length+right.length>1024)return;
+    self.selectedLength=0;
     self.currentLatex = [NSString stringWithFormat:@"%@%@%@", left, text, right];
     self.cursorPosition += offset;
 }
 
 - (void)handleDelete
 {
+    if(self.selectedLength>0) { [self insertText:@"" cursorOffset:0];return; }
     if (self.cursorPosition <= 0 || self.currentLatex.length == 0) return;
 
     NSString *left = [self.currentLatex substringToIndex:self.cursorPosition];
     NSString *right = [self.currentLatex substringFromIndex:self.cursorPosition];
 
+    if([left hasSuffix:@"\\frac{"] && [right hasPrefix:@"}{}"]) {
+        self.currentLatex=[[left substringToIndex:left.length-6] stringByAppendingString:[right substringFromIndex:3]];self.cursorPosition-=6;return;
+    }
     // Check if cursor is right after ^{ and followed by }
     if ([left hasSuffix:@"^{"] && [right hasPrefix:@"}"]) {
         left = [left substringToIndex:left.length - 2];
@@ -928,39 +978,26 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
         self.rawTextField.selectedTextRange = [self.rawTextField textRangeFromPosition:pos toPosition:pos];
     }
 
-    NSString *renderLatex = self.currentLatex.length ? self.currentLatex : @"";
-    if (renderLatex.length > 0) {
-        NSInteger openBraces = 0;
-        for (NSUInteger i = 0; i < renderLatex.length; i++) {
-            unichar c = [renderLatex characterAtIndex:i];
-            if (c == '{') openBraces++;
-            else if (c == '}' && openBraces > 0) openBraces--;
-        }
-        if (openBraces > 0) {
-            NSMutableString *bal = [renderLatex mutableCopy];
-            for (NSInteger b = 0; b < openBraces; b++) {
-                [bal appendString:@"}"];
-            }
-            renderLatex = bal;
-        }
-    }
-
-    @try {
-        self.mathPreviewLabel.latex = renderLatex;
-    } @catch (NSException *e) {
-        self.mathPreviewLabel.latex = @"";
-    }
+    self.selectedLength=0;
+    [[NSUserDefaults standardUserDefaults] setObject:self.currentLatex ?: @"" forKey:@"PMMathDraftLatex"];
+    NSString *preview=[PMMathEditing previewForLatex:self.currentLatex];
+    @try { self.mathPreviewLabel.latex=preview; }
+    @catch(NSException *exception) { self.mathPreviewLabel.latex=@""; }
+    self.previewHint.hidden=!self.mathPreviewLabel.error;
+    self.mathPreviewLabel.hidden=!self.previewHint.hidden;
+    [self.mathPreviewLabel setNeedsLayout];[self.mathPreviewLabel setNeedsDisplay];
 }
 
 - (void)solveTapped:(id)sender
 {
+    if(self.solving)return;
     if (!self.currentLatex.length) {
         [PMUtils alertWithTitle:L(@"Empty Problem") message:L(@"Please type a mathematical problem first.")];
         return;
     }
     if (self.onSolveRequested) {
+        [self.rawTextField resignFirstResponder];
         self.onSolveRequested(self.currentLatex);
-        [self.navigationController popViewControllerAnimated:YES];
     }
 }
 

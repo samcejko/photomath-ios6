@@ -4,6 +4,7 @@
 
 @property (nonatomic, copy) NSString *currentLatex;
 @property (nonatomic, copy) void (^onSolveRequested)(NSString *latex);
+@property (nonatomic, getter=isSolving) BOOL solving;
 
 - (instancetype)initWithInitialLatex:(NSString *)initialLatex;
 
