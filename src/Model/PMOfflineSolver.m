@@ -1,8 +1,10 @@
 #import "PMOfflineSolver.h"
 #import "PMSettings.h"
-#import "PMCommon.h"
+extern NSString *PMUniqueIdentifier(void);
 #import <math.h>
 #import <ctype.h>
+
+static NSString *PMFirstLanguage(void) { NSArray *languages=[NSLocale preferredLanguages];return languages.count?[languages objectAtIndex:0]:@"en"; }
 
 #pragma mark - Exact Fractions
 
@@ -30,74 +32,27 @@ static PMFraction PMFractionMake(long long n, long long d) {
     return (PMFraction){ n, d };
 }
 
-static PMFraction PMFractionAdd(PMFraction a, PMFraction b) {
-    if (a.den == 0 || b.den == 0) return (PMFraction){ 0, 0 };
-    long long g = gcd64(a.den, b.den);
-    long long l = (a.den / g) * b.den;
-    long long num = a.num * (b.den / g) + b.num * (a.den / g);
-    return PMFractionMake(num, l);
-}
-
-static PMFraction PMFractionSub(PMFraction a, PMFraction b) {
-    return PMFractionAdd(a, (PMFraction){ -b.num, b.den });
-}
-
-static PMFraction PMFractionMul(PMFraction a, PMFraction b) {
-    if (a.den == 0 || b.den == 0) return (PMFraction){ 0, 0 };
-    return PMFractionMake(a.num * b.num, a.den * b.den);
-}
-
-static PMFraction PMFractionDiv(PMFraction a, PMFraction b) {
-    if (b.num == 0) return (PMFraction){ 0, 0 };
-    return PMFractionMake(a.num * b.den, a.den * b.num);
-}
-
 static PMFraction doubleToFraction(double val) {
-    if (!isfinite(val) || fabs(val) >= 9.0e18) return (PMFraction){ 0, 0 };
-    double eps = 1e-6;
-    if (fabs(val - round(val)) < eps) {
-        return PMFractionMake((long long)round(val), 1);
+    if (!isfinite(val) || fabs(val) >= 1.0e12) return (PMFraction){0,0};
+    if (fabs(val-round(val)) <= 1e-12) return PMFractionMake((long long)round(val),1);
+    // Bounded denominators and products; never round a small nonzero result to zero.
+    for (long long denominator=2;denominator<=1000;denominator++) {
+        double scaled=val*(double)denominator;
+        long long numerator=(long long)round(scaled);
+        if (numerator && fabs((double)numerator/denominator-val)<=1e-12*MAX(1.0,fabs(val)))
+            return PMFractionMake(numerator,denominator);
     }
-    BOOL neg = (val < 0);
-    double x = fabs(val);
-    long long m[2][2] = { {1, 0}, {0, 1} };
-    while (m[1][0] * (m[1][0] + m[1][1]) <= 10000) {
-        long long a = (long long)floor(x);
-        long long t = m[0][0] * a + m[0][1];
-        m[0][1] = m[0][0]; m[0][0] = t;
-        t = m[1][0] * a + m[1][1];
-        m[1][1] = m[1][0]; m[1][0] = t;
-        if (fabs(x - (double)a) < eps) break;
-        x = 1.0 / (x - (double)a);
-        if (x > 1e7) break;
-    }
-    double approx = (double)m[0][0] / (double)m[1][0];
-    if (fabs(fabs(val) - approx) < 1e-4) {
-        return PMFractionMake(neg ? -m[0][0] : m[0][0], m[1][0]);
-    }
-    return (PMFraction){ 0, 0 };
+    return (PMFraction){0,0};
 }
 
 static NSString *formatFractionOrDouble(double val) {
     if (!isfinite(val) || fabs(val) >= 9.0e18) return [NSString stringWithFormat:@"%.8g", val];
-    if (fabs(val) < 1e-9) return @"0";
-    if (fabs(val - round(val)) < 1e-9) {
-        return [NSString stringWithFormat:@"%lld", (long long)round(val)];
-    }
-    PMFraction f = doubleToFraction(val);
-    if (f.den > 1 && f.den <= 1000) {
-        if (f.num < 0) {
-            return [NSString stringWithFormat:@"-\\frac{%lld}{%lld}", -f.num, f.den];
-        }
-        return [NSString stringWithFormat:@"\\frac{%lld}{%lld}", f.num, f.den];
-    }
-    // Format double cleanly
-    NSString *s = [NSString stringWithFormat:@"%.4f", val];
-    while ([s hasSuffix:@"0"] && [s rangeOfString:@"."].location != NSNotFound) {
-        s = [s substringToIndex:s.length - 1];
-    }
-    if ([s hasSuffix:@"."]) s = [s substringToIndex:s.length - 1];
-    return s;
+    if (val == 0) return @"0";
+    if (fabs(val-round(val)) <= 1e-12 && fabs(val)>=1e-12)
+        return [NSString stringWithFormat:@"%lld",(long long)round(val)];
+    PMFraction f=doubleToFraction(val);
+    if (f.den>1) return f.num<0 ? [NSString stringWithFormat:@"-\\frac{%lld}{%lld}",-f.num,f.den] : [NSString stringWithFormat:@"\\frac{%lld}{%lld}",f.num,f.den];
+    return [NSString stringWithFormat:@"%.12g",val];
 }
 
 #pragma mark - Polynomial Representation
@@ -239,24 +194,28 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 @property (nonatomic, strong) PMNode *right;
 
 - (double)evaluateNumericWithError:(NSError **)error;
+- (double)evaluateWithX:(NSNumber *)x error:(NSError **)error;
 - (PMPoly)evaluatePolyForVar:(NSString *)varName error:(NSError **)error;
 @end
 
 @implementation PMNode
 
-- (double)evaluateNumericWithError:(NSError **)error
+- (double)evaluateNumericWithError:(NSError **)error { return [self evaluateWithX:nil error:error]; }
+
+- (double)evaluateWithX:(NSNumber *)x error:(NSError **)error
 {
     switch (self.type) {
         case PMNodeNumber:
             return self.numberValue;
         case PMNodeVariable: {
+            if (x && [self.stringValue isEqualToString:@"x"]) return x.doubleValue;
             if ([self.stringValue isEqualToString:@"pi"] || [self.stringValue isEqualToString:@"π"]) return M_PI;
             if ([self.stringValue isEqualToString:@"e"]) return M_E;
             if (error) *error = [NSError errorWithDomain:@"PMOfflineSolver" code:1 userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Unknown numeric constant: %@", self.stringValue]}];
             return NAN;
         }
         case PMNodeUnaryOp: {
-            double v = [self.left evaluateNumericWithError:error];
+            double v = [self.left evaluateWithX:x error:error];
             if (isnan(v)) return NAN;
             if ([self.stringValue isEqualToString:@"-"]) return -v;
             if ([self.stringValue isEqualToString:@"+"]) return v;
@@ -272,27 +231,27 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
             return NAN;
         }
         case PMNodeBinaryOp: {
-            double l = [self.left evaluateNumericWithError:error];
+            double l = [self.left evaluateWithX:x error:error];
             if (isnan(l)) return NAN;
-            double r = [self.right evaluateNumericWithError:error];
+            double r = [self.right evaluateWithX:x error:error];
             if (isnan(r)) return NAN;
 
             if ([self.stringValue isEqualToString:@"+"]) return l + r;
             if ([self.stringValue isEqualToString:@"-"]) return l - r;
             if ([self.stringValue isEqualToString:@"*"]) return l * r;
             if ([self.stringValue isEqualToString:@"/"]) {
-                if (fabs(r) < 1e-12) {
+                if (r == 0) {
                     if (error) *error = [NSError errorWithDomain:@"PMOfflineSolver" code:3 userInfo:@{NSLocalizedDescriptionKey: @"Division by zero"}];
                     return NAN;
                 }
                 return l / r;
             }
             if ([self.stringValue isEqualToString:@"^"]) return pow(l, r);
-            if ([self.stringValue isEqualToString:@"%"]) return fmod(l, r);
+            if ([self.stringValue isEqualToString:@"%"]) return r == 0 ? NAN : fmod(l, r);
             return NAN;
         }
         case PMNodeFunction: {
-            double arg = [self.left evaluateNumericWithError:error];
+            double arg = [self.left evaluateWithX:x error:error];
             if (isnan(arg)) return NAN;
             NSString *fn = [self.stringValue lowercaseString];
             if ([fn isEqualToString:@"sqrt"]) {
@@ -413,6 +372,8 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 @property (nonatomic) NSInteger pos;
 @property (nonatomic) unichar currentChar;
 @property (nonatomic) BOOL invalid;
+@property (nonatomic) NSUInteger depth;
+@property (nonatomic) NSUInteger absoluteDepth;
 
 - (instancetype)initWithString:(NSString *)str;
 - (PMNode *)parseExpression;
@@ -434,9 +395,21 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 
 - (PMNode *)parseComplete
 {
-    PMNode *node = [self parseExpression];
+    if (!self.input.length || self.input.length>4096) return nil;
+    PMNode *node=[self parseExpression];
     [self skipWhitespace];
-    return (self.invalid || self.currentChar != 0) ? nil : node;
+    if (self.invalid || self.currentChar || !node) return nil;
+    NSMutableArray *nodes=[NSMutableArray arrayWithObject:node],*levels=[NSMutableArray arrayWithObject:@1];
+    for (NSUInteger i=0;i<nodes.count;i++) {
+        NSUInteger depth=[[levels objectAtIndex:i] unsignedIntegerValue];
+        if (depth>48 || nodes.count>512) return nil;
+        PMNode *current=[nodes objectAtIndex:i];
+        for (PMNode *child in @[current.left ?: (id)[NSNull null],current.right ?: (id)[NSNull null]]) {
+            if ((id)child==[NSNull null]) continue;
+            [nodes addObject:child];[levels addObject:@(depth+1)];
+        }
+    }
+    return node;
 }
 
 - (void)advance
@@ -483,7 +456,8 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
            (self.currentChar >= 'a' && self.currentChar <= 'z') ||
            (self.currentChar >= 'A' && self.currentChar <= 'Z') ||
            self.currentChar == '(' || self.currentChar == '[' || self.currentChar == '{' ||
-           self.currentChar == '\\' || self.currentChar == 0x03C0) {
+           self.currentChar == '\\' || self.currentChar == 0x03C0 || (self.currentChar=='|' && self.absoluteDepth==0) ||
+           ((self.currentChar>='0' && self.currentChar<='9') && node.type!=PMNodeNumber)) {
         NSString *op = @"*";
         if (self.currentChar == '*' || self.currentChar == '/' || self.currentChar == '%') {
             op = [NSString stringWithCharacters:&_currentChar length:1];
@@ -504,18 +478,14 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 // Unary plus/minus binds looser than power (-x^2 is -(x^2), not (-x)^2)
 - (PMNode *)parseUnary
 {
+    if (++self.depth>48) { self.invalid=YES;self.depth--;return nil; }
     [self skipWhitespace];
-    if (self.currentChar == '+' || self.currentChar == '-') {
-        NSString *op = [NSString stringWithCharacters:&_currentChar length:1];
-        [self advance];
-        PMNode *child = [self parseUnary];
-        PMNode *node = [[PMNode alloc] init];
-        node.type = PMNodeUnaryOp;
-        node.stringValue = op;
-        node.left = child;
-        return node;
-    }
-    return [self parsePower];
+    PMNode *node;
+    if (self.currentChar=='+' || self.currentChar=='-') {
+        NSString *op=[NSString stringWithCharacters:&_currentChar length:1];[self advance];
+        node=[[PMNode alloc] init];node.type=PMNodeUnaryOp;node.stringValue=op;node.left=[self parseUnary];
+    } else node=[self parsePower];
+    self.depth--;return node;
 }
 
 - (PMNode *)parsePower
@@ -561,6 +531,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
 
     // Absolute value: | expr |
     if (self.currentChar == '|') {
+        self.absoluteDepth++;
         [self advance];
         PMNode *node = [self parseExpression];
         [self skipWhitespace];
@@ -569,21 +540,32 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         PMNode *fn = [[PMNode alloc] init];
         fn.type = PMNodeFunction;
         fn.stringValue = @"abs";
+        self.absoluteDepth--;
         fn.left = node;
         return fn;
     }
 
     // Number
     if ((self.currentChar >= '0' && self.currentChar <= '9') || self.currentChar == '.') {
-        NSMutableString *numStr = [NSMutableString string];
-        while ((self.currentChar >= '0' && self.currentChar <= '9') || self.currentChar == '.') {
-            [numStr appendFormat:@"%C", self.currentChar];
-            [self advance];
+        NSMutableString *numStr=[NSMutableString string];
+        while ((self.currentChar>='0' && self.currentChar<='9') || self.currentChar=='.') {
+            [numStr appendFormat:@"%C",self.currentChar];[self advance];
+        }
+        if ((self.currentChar=='e' || self.currentChar=='E') && self.pos+1<self.input.length) {
+            unichar next=[self.input characterAtIndex:self.pos+1];
+            if ((next>='0' && next<='9') || next=='+' || next=='-') {
+                [numStr appendString:@"e"];[self advance];
+                if (self.currentChar=='+' || self.currentChar=='-') { [numStr appendFormat:@"%C",self.currentChar];[self advance]; }
+                NSUInteger start=self.pos;
+                while(self.currentChar>='0' && self.currentChar<='9') { [numStr appendFormat:@"%C",self.currentChar];[self advance]; }
+                if (self.pos==start)self.invalid=YES;
+            }
         }
         PMNode *node = [[PMNode alloc] init];
         node.type = PMNodeNumber;
         if ([numStr isEqualToString:@"."] || [numStr componentsSeparatedByString:@"."].count > 2) self.invalid = YES;
         node.numberValue = [numStr doubleValue];
+        if (!isfinite(node.numberValue)) self.invalid=YES;
         return node;
     }
 
@@ -595,7 +577,6 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         if (self.currentChar == '\\') [self advance];
         while ((self.currentChar >= 'a' && self.currentChar <= 'z') ||
                (self.currentChar >= 'A' && self.currentChar <= 'Z') ||
-               (self.currentChar >= '0' && self.currentChar <= '9') ||
                self.currentChar == 0x03C0) {
             [idStr appendFormat:@"%C", self.currentChar];
             [self advance];
@@ -603,7 +584,8 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         [self skipWhitespace];
 
         // Is function call? E.g. sin(...)
-        if (self.currentChar == '(') {
+        NSSet *functions=[NSSet setWithObjects:@"sqrt",@"cbrt",@"sin",@"cos",@"tan",@"asin",@"acos",@"atan",@"arcsin",@"arccos",@"arctan",@"sinh",@"cosh",@"tanh",@"log",@"ln",@"abs",nil];
+        if (self.currentChar == '(' && [functions containsObject:[idStr lowercaseString]]) {
             [self advance];
             PMNode *arg = [self parseExpression];
             [self skipWhitespace];
@@ -620,6 +602,7 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
         PMNode *node = [[PMNode alloc] init];
         node.type = PMNodeVariable;
         node.stringValue = idStr;
+        if (!idStr.length || (idStr.length>1 && ![idStr isEqualToString:@"pi"])) self.invalid=YES;
         return node;
     }
 
@@ -632,6 +615,18 @@ typedef NS_ENUM(NSInteger, PMNodeType) {
     return zero;
 }
 
+@end
+
+@interface PMGraphFunction ()
+@property(nonatomic, copy, readwrite) NSString *expression;
+@property(nonatomic, strong) PMNode *root;
+@end
+@implementation PMGraphFunction
+- (double)valueAtX:(double)x {
+    if(!isfinite(x))return NAN;
+    double value=[self.root evaluateWithX:@(x) error:NULL];
+    return isfinite(value)?value:NAN;
+}
 @end
 
 #pragma mark - PMOfflineSolver Implementation
@@ -657,7 +652,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
 
 + (NSString *)cleanLatexToMath:(NSString *)latex
 {
-    if (!latex.length) return @"";
+    if (!latex.length || latex.length>1024) return @"";
     NSMutableString *s = [latex mutableCopy];
 
     // Remove text tags and spacing
@@ -728,7 +723,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
         NSString *xStr = [s substringWithRange:xRange];
 
         NSInteger totalLen = (xRange.location + xRange.length + 1) - rootRange.location;
-        NSString *repl = [NSString stringWithFormat:@"((%@)^(1/(%@)))", xStr, nStr];
+        NSString *repl = [nStr isEqualToString:@"3"] ? [NSString stringWithFormat:@"cbrt(%@)",xStr] : [NSString stringWithFormat:@"((%@)^(1/(%@)))", xStr, nStr];
         [s replaceCharactersInRange:NSMakeRange(rootRange.location, totalLen) withString:repl];
     }
 
@@ -775,51 +770,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     [s replaceOccurrencesOfString:@"²" withString:@"^2" options:0 range:NSMakeRange(0, s.length)];
     [s replaceOccurrencesOfString:@"³" withString:@"^3" options:0 range:NSMakeRange(0, s.length)];
 
-    // Strip whitespace between numbers and variables/functions or parentheses
-    NSRegularExpression *spaceNumVar = [NSRegularExpression regularExpressionWithPattern:@"([0-9])\\s+([a-zA-Z\\(\\[\\{\\\\π])" options:0 error:nil];
-    s = [[spaceNumVar stringByReplacingMatchesInString:s options:0 range:NSMakeRange(0, s.length) withTemplate:@"$1*$2"] mutableCopy];
-
-    NSRegularExpression *spaceVarNum = [NSRegularExpression regularExpressionWithPattern:@"([a-zA-Z\\)\\]\\}])\\s+([0-9])" options:0 error:nil];
-    s = [[spaceVarNum stringByReplacingMatchesInString:s options:0 range:NSMakeRange(0, s.length) withTemplate:@"$1*$2"] mutableCopy];
-
-    NSSet *fnSet = [NSSet setWithObjects:@"sin", @"cos", @"tan", @"sinh", @"cosh", @"tanh",
-                    @"asin", @"acos", @"atan", @"arcsin", @"arccos", @"arctan",
-                    @"log", @"ln", @"sqrt", @"cbrt", @"abs", nil];
-
-    // Insert implicit multiplications: e.g. 2x -> 2*x, 3( -> 3*(, )x -> )*x, )( -> )*(, x( -> x*(
-    NSMutableString *res = [NSMutableString string];
-    for (NSInteger i = 0; i < s.length; i++) {
-        unichar c = [s characterAtIndex:i];
-        [res appendFormat:@"%C", c];
-        if (i + 1 < s.length) {
-            unichar next = [s characterAtIndex:i + 1];
-            BOOL isNum = (c >= '0' && c <= '9');
-            BOOL isLetter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-            BOOL isClose = (c == ')' || c == ']' || c == '}');
-
-            BOOL nextLetter = (next >= 'a' && next <= 'z') || (next >= 'A' && next <= 'Z');
-            BOOL nextOpen = (next == '(' || next == '[' || next == '{');
-
-            // Check if word ending at c is a function name
-            BOOL isEndOfFunction = NO;
-            if (isLetter && nextOpen) {
-                NSInteger start = i;
-                while (start > 0 && isalpha([s characterAtIndex:start - 1])) start--;
-                NSString *word = [[s substringWithRange:NSMakeRange(start, i - start + 1)] lowercaseString];
-                if ([fnSet containsObject:word]) {
-                    isEndOfFunction = YES;
-                }
-            }
-
-            if ((isNum && (nextLetter || nextOpen)) ||
-                (isClose && (nextLetter || nextOpen || (next >= '0' && next <= '9'))) ||
-                (isLetter && nextOpen && !isEndOfFunction)) {
-                [res appendString:@"*"];
-            }
-        }
-    }
-
-    return res;
+    return s;
 }
 
 + (NSString *)detectVariableInString:(NSString *)str
@@ -832,9 +783,9 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     for (NSTextCheckingResult *m in matches) {
         NSString *letter = [str substringWithRange:m.range];
         NSInteger start = m.range.location;
-        while (start > 0 && isalpha([str characterAtIndex:start - 1])) start--;
+        while (start > 0 && (([str characterAtIndex:start - 1]>='a' && [str characterAtIndex:start - 1]<='z') || ([str characterAtIndex:start - 1]>='A' && [str characterAtIndex:start - 1]<='Z'))) start--;
         NSInteger end = m.range.location + m.range.length;
-        while (end < str.length && isalpha([str characterAtIndex:end])) end++;
+        while (end < str.length && (([str characterAtIndex:end]>='a' && [str characterAtIndex:end]<='z') || ([str characterAtIndex:end]>='A' && [str characterAtIndex:end]<='Z'))) end++;
         NSString *word = [str substringWithRange:NSMakeRange(start, end - start)];
         if (![reserved containsObject:[word lowercaseString]]) {
             return letter;
@@ -843,37 +794,71 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     return nil;
 }
 
++ (PMGraphFunction *)graphFunctionForProblem:(NSString *)problemLatex
+{
+    if(![problemLatex isKindOfClass:[NSString class]] || problemLatex.length>1024)return nil;
+    NSString *clean=[self cleanLatexToMath:problemLatex];
+    NSArray *sides=[clean componentsSeparatedByString:@"="];
+    if(sides.count>2 || !clean.length)return nil;
+    NSString *expression=clean;
+    if(sides.count==2) {
+        NSString *lhs=[[sides objectAtIndex:0] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        NSString *rhs=[[sides objectAtIndex:1] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        if(!lhs.length)return nil;
+        if([lhs isEqualToString:@"y"] || [lhs isEqualToString:@"f(x)"])expression=rhs;
+        else if(!rhs.length || [rhs isEqualToString:@"?"])expression=lhs;
+        else expression=[NSString stringWithFormat:@"(%@)-(%@)",lhs,rhs];
+    }
+    PMNode *node=[[[PMParser alloc] initWithString:expression] parseComplete];
+    if(!node)return nil;
+    NSMutableArray *nodes=[NSMutableArray arrayWithObject:node];
+    BOOL variable=NO;
+    for(NSUInteger i=0;i<nodes.count;i++) {
+        PMNode *part=[nodes objectAtIndex:i];
+        if(part.type==PMNodeVariable) {
+            if(![@[@"x",@"pi",@"π",@"e"] containsObject:part.stringValue])return nil;
+            if([part.stringValue isEqualToString:@"x"])variable=YES;
+        }
+        if(part.left)[nodes addObject:part.left];if(part.right)[nodes addObject:part.right];
+    }
+    if(!variable && !isfinite([node evaluateNumericWithError:NULL]))return nil;
+    PMGraphFunction *graph=[[PMGraphFunction alloc] init];graph.expression=expression;graph.root=node;return graph;
+}
+
 + (BOOL)canSolveProblem:(NSString *)problemLatex
 {
-    if (!problemLatex.length) return NO;
-    NSString *clean = [self cleanLatexToMath:problemLatex];
-    if (!clean.length) return NO;
-
-    // Calculus / unsupported symbols should be handled by LLM
-    if ([problemLatex rangeOfString:@"\\int"].location != NSNotFound ||
-        [problemLatex rangeOfString:@"\\sum"].location != NSNotFound ||
-        [problemLatex rangeOfString:@"\\lim"].location != NSNotFound ||
-        [problemLatex rangeOfString:@"\\frac{d}{dx}"].location != NSNotFound ||
-        [problemLatex rangeOfString:@"\\matrix"].location != NSNotFound ||
-        [problemLatex rangeOfString:@"\\pmatrix"].location != NSNotFound) {
-        return NO;
-    }
-
-    NSArray *parts = [clean componentsSeparatedByString:@"="];
-    if (parts.count <= 2) {
-        return YES;
-    }
-    return NO;
+    return [self solveProblem:problemLatex error:NULL]!=nil;
 }
 
 + (PMMathSolution *)solveProblem:(NSString *)problemLatex error:(NSError **)error
 {
+    if(error)*error=nil;
+    PMMathSolution *solution=[self solveValidatedProblem:problemLatex error:error];
+    if(!solution && error && !*error) *error=[NSError errorWithDomain:@"PMOfflineSolver" code:100 userInfo:@{NSLocalizedDescriptionKey:NSLocalizedString(@"Check the expression: complete the brackets and fill every part of the formula. This problem may require online solving.",nil)}];
+    return solution;
+}
+
++ (PMMathSolution *)solveValidatedProblem:(NSString *)problemLatex error:(NSError **)error
+{
+    if(![problemLatex isKindOfClass:[NSString class]] || problemLatex.length>1024)return nil;
     NSString *clean = [self cleanLatexToMath:problemLatex];
-    BOOL isCzech = [[PMSettings shared].solutionLanguage isEqualToString:@"cs"];
+    NSString *language=[PMSettings shared].solutionLanguage;
+    if(!language.length || [language isEqualToString:@"auto"])language=PMFirstLanguage();
+    BOOL isCzech = [language hasPrefix:@"cs"];
+    if(!clean.length)return nil;
 
     NSArray *sides = [clean componentsSeparatedByString:@"="];
     if (sides.count > 2) return nil;
     NSString *varName = [self detectVariableInString:clean];
+    if(sides.count==2) {
+        NSString *lhs=[[sides objectAtIndex:0] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        PMGraphFunction *function=[self graphFunctionForProblem:problemLatex];
+        if(function && ([lhs isEqualToString:@"y"] || [lhs isEqualToString:@"f(x)"])) {
+            PMMathSolution *sol=[[PMMathSolution alloc] init];sol.solutionId=PMUniqueIdentifier();sol.date=[NSDate date];sol.problemLatex=problemLatex;sol.solutionLatex=problemLatex;sol.modelUsed=@"Offline Engine";
+            sol.summary=isCzech?@"Graf funkce":@"Function graph";
+            PMStep *step=[[PMStep alloc] init];step.stepNumber=1;step.title=sol.summary;step.latex=problemLatex;step.explanation=isCzech?@"Otevři graf pro průběh funkce. Hodnoty mimo reálný definiční obor se nevykreslují.":@"Open the graph to inspect the function. Values outside its real domain are omitted.";sol.steps=@[step];return sol;
+        }
+    }
 
     if (sides.count == 2) {
         NSString *lhsStr = [[sides objectAtIndex:0] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
@@ -949,12 +934,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
     sol.summary = isCzech ? @"Vypočítaná hodnota výrazu" : @"Calculated expression value";
 
     NSString *solLatex = formatFractionOrDouble(result);
-    PMFraction f = doubleToFraction(result);
-    if (f.den > 1 && fabs(result - round(result)) > 1e-9) {
-        sol.solutionLatex = [NSString stringWithFormat:@"%@ = %.4f", solLatex, result];
-    } else {
-        sol.solutionLatex = solLatex;
-    }
+    sol.solutionLatex = solLatex;
 
     NSMutableArray *steps = [NSMutableArray array];
 

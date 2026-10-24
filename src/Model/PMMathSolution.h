@@ -1,5 +1,5 @@
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
+@class UIImage;
 
 @interface PMStep : NSObject
 

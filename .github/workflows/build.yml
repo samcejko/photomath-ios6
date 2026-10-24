@@ -22,7 +22,16 @@ env:
   THEOS_CACHE_KEY: theos-linux-clang11-sdk93-sdk165-v2
 
 jobs:
+  solver-test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check actual offline solver and graph evaluation
+        run: |
+          clang -fobjc-arc -g -fsanitize=address,undefined -Wno-incomplete-implementation -framework Foundation -Isrc/Model tools/check_solver.m src/Model/PMOfflineSolver.m -o /tmp/check-solver
+          /tmp/check-solver
   build:
+    needs: solver-test
     strategy:
       fail-fast: false
       matrix:
