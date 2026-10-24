@@ -36,6 +36,7 @@
         _solution = solution;
         _graphFunction = [PMOfflineSolver graphFunctionForProblem:solution.problemLatex];
         self.title = L(@"Solution");
+        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:L(@"Solution") style:UIBarButtonItemStyleBordered target:nil action:nil];
     }
     return self;
 }

@@ -240,6 +240,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
         _currentLatex = initialLatex.length ? [initialLatex copy] : (draft ?: @"");
         _cursorPosition = _currentLatex.length;
         self.title = L(@"Math Editor");
+        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:L(@"Math Editor") style:UIBarButtonItemStyleBordered target:nil action:nil];
         _currentButtons = [NSMutableArray array];
     }
     return self;
