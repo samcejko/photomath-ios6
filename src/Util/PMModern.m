@@ -473,7 +473,7 @@ static void ORApplyTabBarAppearance(UITabBar *bar)
 #endif
 
 void PMModernApplyNavigationBarBackground(UINavigationBar *bar, UIImage *image, NSDictionary *titleAttributes,
-                                             UIImage *buttonImage, UIImage *buttonImageHighlighted, NSDictionary *buttonTitleAttributes)
+                                             UIImage *buttonImage, UIImage *buttonImageHighlighted, NSDictionary *buttonTitleAttributes, UIImage *backButtonImage, UIImage *backButtonImageHighlighted)
 {
     if (!bar || !image || !PMModernIOS()) return;
     bar.translucent = NO;
@@ -498,6 +498,12 @@ void PMModernApplyNavigationBarBackground(UINavigationBar *bar, UIImage *image, 
                     b.highlighted.titleTextAttributes = buttonTitleAttributes;
                 }
             }
+        }
+        if(backButtonImage) {
+            a.backButtonAppearance.normal.backgroundImage=backButtonImage;
+            a.backButtonAppearance.highlighted.backgroundImage=backButtonImageHighlighted ?: backButtonImage;
+            a.backButtonAppearance.disabled.backgroundImage=backButtonImage;
+            UIImage *clear=ORClearImage(CGSizeMake(1,20));[a setBackIndicatorImage:clear transitionMaskImage:clear];
         }
         ORSetNavigationBarAppearances(bar, a, a);
         return;

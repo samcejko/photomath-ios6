@@ -4,6 +4,21 @@
 #import "PMModern.h"
 #import "PMCommon.h"
 
+static UIImage *PMNavigationButton(BOOL back,BOOL highlighted)
+{
+    CGSize size=CGSizeMake(40,30);UIGraphicsBeginImageContextWithOptions(size,NO,0);
+    CGContextRef context=UIGraphicsGetCurrentContext();UIBezierPath *path;
+    if(back) {
+        path=[UIBezierPath bezierPath];[path moveToPoint:CGPointMake(.5,15)];[path addLineToPoint:CGPointMake(10,1)];[path addLineToPoint:CGPointMake(35,1)];[path addQuadCurveToPoint:CGPointMake(39,5) controlPoint:CGPointMake(39,1)];[path addLineToPoint:CGPointMake(39,25)];[path addQuadCurveToPoint:CGPointMake(35,29) controlPoint:CGPointMake(39,29)];[path addLineToPoint:CGPointMake(10,29)];[path closePath];
+    } else path=[UIBezierPath bezierPathWithRoundedRect:CGRectMake(.5,.5,39,29) cornerRadius:5];
+    CGContextSaveGState(context);[path addClip];
+    CGFloat components[8]={highlighted?.60:.86,.12,.12,1,highlighted?.40:.62,.03,.03,1};
+    CGColorSpaceRef space=CGColorSpaceCreateDeviceRGB();CGGradientRef gradient=CGGradientCreateWithColorComponents(space,components,NULL,2);CGContextDrawLinearGradient(context,gradient,CGPointZero,CGPointMake(0,30),0);CGGradientRelease(gradient);CGColorSpaceRelease(space);
+    [[UIColor colorWithWhite:1 alpha:highlighted?.06:.2] setFill];UIRectFill(CGRectMake(0,0,40,14));CGContextRestoreGState(context);
+    [[UIColor colorWithWhite:0 alpha:.5] setStroke];path.lineWidth=1;[path stroke];
+    UIImage *image=UIGraphicsGetImageFromCurrentImageContext();UIGraphicsEndImageContext();return [image stretchableImageWithLeftCapWidth:back?15:6 topCapHeight:14];
+}
+
 @implementation PMTheme
 
 + (instancetype)shared
@@ -159,7 +174,9 @@
     // Background gradient
     CGFloat r, g, b, a;
     if (![baseColor getRed:&r green:&g blue:&b alpha:&a]) {
-        r = 0.88f; g = 0.20f; b = 0.20f; a = 1.0f;
+        CGFloat white=0.88f;
+        if([baseColor getWhite:&white alpha:&a]) { r=white;g=white;b=white; }
+        else { r = 0.88f; g = 0.20f; b = 0.20f; a = 1.0f; }
     }
     if (highlighted) {
         r *= 0.8f; g *= 0.8f; b *= 0.8f;
@@ -457,7 +474,7 @@
     UIImage *bg = [self navigationBarBackgroundImage];
     [bar setBackgroundImage:bg forBarMetrics:UIBarMetricsDefault];
     bar.barStyle = UIBarStyleBlack;
-    bar.tintColor = [UIColor whiteColor];
+    bar.tintColor = PMModernIOS() ? [UIColor whiteColor] : [self accentColor];
 
     NSMutableDictionary *attrs = [NSMutableDictionary dictionary];
     PMSetDictionaryObject(attrs, UITextAttributeTextColor, [UIColor whiteColor]);
@@ -491,7 +508,14 @@
 
     bar.titleTextAttributes = attrs;
 
-    PMModernApplyNavigationBarBackground(bar, bg, attrs, nil, nil, btnAttrs);
+    UIImage *button=PMNavigationButton(NO,NO),*pressed=PMNavigationButton(NO,YES),*back=PMNavigationButton(YES,NO),*backPressed=PMNavigationButton(YES,YES);
+    UIBarButtonItem *appearance=[UIBarButtonItem appearance];
+    [appearance setBackgroundImage:button forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+    [appearance setBackgroundImage:pressed forState:UIControlStateHighlighted barMetrics:UIBarMetricsDefault];
+    [appearance setBackButtonBackgroundImage:back forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+    [appearance setBackButtonBackgroundImage:backPressed forState:UIControlStateHighlighted barMetrics:UIBarMetricsDefault];
+    [appearance setTitleTextAttributes:btnAttrs forState:UIControlStateNormal];
+    PMModernApplyNavigationBarBackground(bar, bg, attrs, button, pressed, btnAttrs, back, backPressed);
 }
 
 - (void)applyToTableView:(UITableView *)tableView

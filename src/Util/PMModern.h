@@ -21,7 +21,7 @@ void PMModernSetUpWithoutSkin(void);
 // bar turns transparent at the top of a list). The bar may be the appearance proxy. The title attributes (NS* keys)
 // and the bar buttons' images and title attributes may be nil. No-ops on iOS 6.
 void PMModernApplyNavigationBarBackground(UINavigationBar *bar, UIImage *image, NSDictionary *titleAttributes,
-                                             UIImage *buttonImage, UIImage *buttonImageHighlighted, NSDictionary *buttonTitleAttributes);
+                                             UIImage *buttonImage, UIImage *buttonImageHighlighted, NSDictionary *buttonTitleAttributes, UIImage *backButtonImage, UIImage *backButtonImageHighlighted);
 void PMModernApplyTabBarBackground(UITabBar *bar, UIImage *image);
 
 // The text field inside a search bar (iOS 13 names it; before that it is found among the subviews), or nil.

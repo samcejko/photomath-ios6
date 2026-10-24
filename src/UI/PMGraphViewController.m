@@ -77,7 +77,7 @@ static double PMGridStep(double span)
         CGContextMoveToPoint(context,0,py);CGContextAddLineToPoint(context,width,py);
         if(fabs(y)>step*1e-8) [[NSString stringWithFormat:@"%.4g",y] drawAtPoint:CGPointMake(MAX(2,MIN(width-42,(0-minX)/xSpan*width+3)),py+2) withFont:font];
     }
-    CGContextStrokePath(context);
+    CGContextSetStrokeColorWithColor(context,grid.CGColor);CGContextSetLineWidth(context,.5);CGContextStrokePath(context);
     CGContextSetStrokeColorWithColor(context,text.CGColor);CGContextSetLineWidth(context,1);
     CGFloat axisX=(0-minX)/xSpan*width,axisY=height-(0-minY)/ySpan*height;
     if(axisX>=0 && axisX<=width){CGContextMoveToPoint(context,axisX,0);CGContextAddLineToPoint(context,axisX,height);}
