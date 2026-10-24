@@ -88,13 +88,14 @@ static double PMGridStep(double span)
     double previousX=0,previousY=0;
     for(NSInteger i=0;i<=samples;i++) {
         double x=minX+xSpan*i/samples,y=[self.function valueAtX:x];
-        CGFloat px=(CGFloat)width*i/samples,py=height-(y-minY)/ySpan*height;
-        BOOL valid=isfinite(y) && isfinite(py) && fabs(py)<height*100;
+        double projectedY=height-(y-minY)/ySpan*height;
+        CGFloat px=(CGFloat)width*i/samples,py=MAX(-height*100,MIN(height*100,projectedY));
+        BOOL valid=isfinite(y) && isfinite(projectedY);
         BOOL bridge=valid && connected;
         if(bridge){
             double middle=[self.function valueAtX:(previousX+x)/2];
             // Never draw a line over a pole or a gap in the real domain.
-            if(!isfinite(middle) || fabs(middle-(previousY+y)/2)>ySpan*.1 || fabs(y-previousY)>ySpan*2)bridge=NO;
+            if(!isfinite(middle) || fabs(middle-(previousY+y)/2)>ySpan*.1)bridge=NO;
         }
         if(valid){if(bridge)CGContextAddLineToPoint(context,px,py);else CGContextMoveToPoint(context,px,py);}
         connected=valid;previousX=x;previousY=y;
