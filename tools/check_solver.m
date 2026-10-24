@@ -38,7 +38,7 @@ int main(void) { @autoreleasepool {
         Check(solution && !error && solution.solutionLatex.length,[input stringByAppendingString:@" solved"]);
     }
     Value(@"y=x^2+1",3,10);Value(@"x^2=4",2,0);Value(@"x^2=4",0,-4);Value(@"sin(x)",M_PI/2,1);Value(@"x(2+x)",3,15);Value(@"x2",3,6);
-    for(NSString *input in @[@"",@".",@"2+",@"=2",@"2==3",@"()",@"(2+3",@"2+3)",@"1..2",@"2/**3",@"\\frac{}{}",@"\\sqrt{}",@"x+y=2",@"sin()",@"2e+",@"1e999",@"0/0",@"1/0",@"1%0",@"sqrt(-1)",@"ln(0)",@"asin(2)",@"(-1)!",@"171!",@"1e308*1e308",@"x^5=2",@"1e-12*x^5=2",@"0.0000001!",@"\\int x dx"]) {
+    for(NSString *input in @[@"",@".",@"2+",@"=2",@"2==3",@"()",@"(2+3",@"2+3)",@"1..2",@"2/**3",@"\\frac{}{}",@"\\sqrt{}",@"x+y=2",@"sin()",@"2e+",@"1e999",@"0/0",@"1/0",@"1%0",@"sqrt(-1)",@"ln(0)",@"asin(2)",@"(-1)!",@"171!",@"1e308*1e308",@"1e-320*x=1",@"x^5=2",@"1e-12*x^5=2",@"0.0000001!",@"\\int x dx"]) {
         NSError *error=nil;PMMathSolution *solution=[PMOfflineSolver solveProblem:input error:&error];
         Check(!solution && error!=nil,[input stringByAppendingString:@" rejected with explanation"]);
         Check(![PMOfflineSolver canSolveProblem:input],[input stringByAppendingString:@" unsupported capability"]);
@@ -57,6 +57,7 @@ int main(void) { @autoreleasepool {
     Check(![[PMOfflineSolver solveProblem:@"1e-12" error:NULL].solutionLatex isEqualToString:@"0"],@"1e-12 is not rounded to zero");
     Check([[PMOfflineSolver solveProblem:@"1e-12*x=1" error:NULL].solutionLatex rangeOfString:@"1000000000000"].location!=NSNotFound,@"small coefficient is retained");
     Check([[PMOfflineSolver solveProblem:@"1e-12=0" error:NULL].summary rangeOfString:@"false"].location!=NSNotFound,@"small unequal numbers are unequal");
+    Check([[PMOfflineSolver solveProblem:@"0.1x+0.2x=0.3x" error:NULL].solutionLatex rangeOfString:@"mathbb"].location!=NSNotFound,@"cancellation preserves polynomial identities");
     PMMathSolution *tiny=[PMOfflineSolver solveProblem:@"1e-8" error:NULL];Check(![tiny.solutionLatex isEqualToString:@"0"],@"small results retain significant digits");
     [PMSettings shared].solutionLanguage=@"cs";Check([[PMOfflineSolver solveProblem:@"2+2" error:NULL].summary rangeOfString:@"hodnota"].location!=NSNotFound,@"Czech solution");
     printf("Solver and graph checks passed: %lu\n",(unsigned long)checks);

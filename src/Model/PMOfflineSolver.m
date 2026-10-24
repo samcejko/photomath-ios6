@@ -67,6 +67,11 @@ typedef struct {
     BOOL valid;
 } PMPoly;
 
+static double PMCoefficientSum(double a,double b) {
+    double result=a+b,scale=fabs(a)+fabs(b);
+    return isfinite(result) && isfinite(scale) && fabs(result)<=16*DBL_EPSILON*scale ? 0 : result;
+}
+
 static PMPoly PMPolyMakeConst(double c) {
     return (PMPoly){ c, 0, 0, 0, 0, YES };
 }
@@ -77,12 +82,12 @@ static PMPoly PMPolyMakeVar(void) {
 
 static PMPoly PMPolyAdd(PMPoly a, PMPoly b) {
     if (!a.valid || !b.valid) return (PMPoly){0,0,0,0,0,NO};
-    return (PMPoly){ a.c0 + b.c0, a.c1 + b.c1, a.c2 + b.c2, a.c3 + b.c3, a.c4 + b.c4, YES };
+    return (PMPoly){ PMCoefficientSum(a.c0,b.c0), PMCoefficientSum(a.c1,b.c1), PMCoefficientSum(a.c2,b.c2), PMCoefficientSum(a.c3,b.c3), PMCoefficientSum(a.c4,b.c4), YES };
 }
 
 static PMPoly PMPolySub(PMPoly a, PMPoly b) {
     if (!a.valid || !b.valid) return (PMPoly){0,0,0,0,0,NO};
-    return (PMPoly){ a.c0 - b.c0, a.c1 - b.c1, a.c2 - b.c2, a.c3 - b.c3, a.c4 - b.c4, YES };
+    return (PMPoly){ PMCoefficientSum(a.c0,-b.c0), PMCoefficientSum(a.c1,-b.c1), PMCoefficientSum(a.c2,-b.c2), PMCoefficientSum(a.c3,-b.c3), PMCoefficientSum(a.c4,-b.c4), YES };
 }
 
 static PMPoly PMPolyMulConst(PMPoly a, double k) {
@@ -1005,6 +1010,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
             return nil;
         }
         double val = -c / a4;
+        if(!isfinite(val))return nil;
         sol.summary = isCzech ? [NSString stringWithFormat:@"Rovnice 4. stupně pro %@", varName] :
                                 [NSString stringWithFormat:@"4th degree equation solved for %@", varName];
 
@@ -1062,6 +1068,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
             return nil;
         }
         double val = -c / a3;
+        if(!isfinite(val))return nil;
         sol.summary = isCzech ? [NSString stringWithFormat:@"Kubická rovnice pro %@", varName] :
                                 [NSString stringWithFormat:@"Cubic equation solved for %@", varName];
 
@@ -1131,6 +1138,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
         } else {
             // b*x + c = 0 => b*x = -c => x = -c/b
             double root = -c / b;
+            if(!isfinite(root))return nil;
             NSString *bStr = formatFractionOrDouble(b);
             NSString *negCStr = formatFractionOrDouble(-c);
             NSString *ansStr = formatFractionOrDouble(root);
@@ -1207,6 +1215,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
             double sqrtD = sqrt(D);
             double x1 = (-b + sqrtD) / (2.0 * a);
             double x2 = (-b - sqrtD) / (2.0 * a);
+            if(!isfinite(x1) || !isfinite(x2))return nil;
             NSString *x1Str = formatFractionOrDouble(x1);
             NSString *x2Str = formatFractionOrDouble(x2);
 
@@ -1229,6 +1238,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
             sol.solutionLatex = [NSString stringWithFormat:@"%@_1 = %@, \\quad %@_2 = %@", varName, x1Str, varName, x2Str];
         } else if ((D)==0) {
             double x = -b / (2.0 * a);
+            if(!isfinite(x))return nil;
             NSString *xStr = formatFractionOrDouble(x);
 
             PMStep *s3 = [[PMStep alloc] init];
@@ -1244,6 +1254,7 @@ static NSRange findBalancedBraces(NSString *str, NSInteger openBracePos) {
             // D < 0 => Complex roots
             double realPart = -b / (2.0 * a);
             double imagPart = sqrt(-D) / (2.0 * a);
+            if(!isfinite(realPart) || !isfinite(imagPart))return nil;
             NSString *realStr = formatFractionOrDouble(realPart);
             NSString *imagStr = formatFractionOrDouble(fabs(imagPart));
 
