@@ -81,7 +81,7 @@ UIView *RetroSectionHeader(NSString *title, CGFloat width) {
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event { }
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
     UITouch *touch = [touches anyObject];
-    if (self.enabled && CGRectContainsPoint(self.bounds,[touch locationInView:self])) [self accessibilityActivate];
+    if (self.enabled && CGRectContainsPoint(self.bounds,[touch locationInView:self])) { [self setOn:!self.on animated:YES];[self sendActionsForControlEvents:UIControlEventValueChanged]; }
 }
 - (BOOL)beginTrackingWithTouch:(UITouch *)touch withEvent:(UIEvent *)event { return YES; }
 - (void)endTrackingWithTouch:(UITouch *)touch withEvent:(UIEvent *)event {
