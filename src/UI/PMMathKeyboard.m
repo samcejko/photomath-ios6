@@ -236,7 +236,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
 {
     self = [super init];
     if (self) {
-        NSString *draft=[[NSUserDefaults standardUserDefaults] stringForKey:@"PMMathDraftLatex"];
+        NSString *draft=[NSString stringWithContentsOfFile:[[PMUtils historyPath] stringByAppendingPathComponent:@"draft.txt"] encoding:NSUTF8StringEncoding error:NULL] ?: [[NSUserDefaults standardUserDefaults] stringForKey:@"PMMathDraftLatex"];
         _currentLatex = initialLatex.length ? [initialLatex copy] : (draft ?: @"");
         _cursorPosition = _currentLatex.length;
         self.title = L(@"Math Editor");
@@ -980,7 +980,8 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
     }
 
     self.selectedLength=0;
-    [[NSUserDefaults standardUserDefaults] setObject:self.currentLatex ?: @"" forKey:@"PMMathDraftLatex"];
+    // A small atomic file survives immediate process exit; preferences may defer disk writes on iOS 5/6.
+    [self.currentLatex ?: @"" writeToFile:[[PMUtils historyPath] stringByAppendingPathComponent:@"draft.txt"] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
     NSString *preview=[PMMathEditing previewForLatex:self.currentLatex];
     @try { self.mathPreviewLabel.latex=preview; }
     @catch(NSException *exception) { self.mathPreviewLabel.latex=@""; }
