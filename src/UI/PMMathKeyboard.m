@@ -981,7 +981,7 @@ static UIImage *AuditDirectionIcon(NSString *direction, UIColor *color)
 
     self.selectedLength=0;
     // A small atomic file survives immediate process exit; preferences may defer disk writes on iOS 5/6.
-    [self.currentLatex ?: @"" writeToFile:[[PMUtils historyPath] stringByAppendingPathComponent:@"draft.txt"] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
+    [(self.currentLatex ?: @"") writeToFile:[[PMUtils historyPath] stringByAppendingPathComponent:@"draft.txt"] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
     NSString *preview=[PMMathEditing previewForLatex:self.currentLatex];
     @try { self.mathPreviewLabel.latex=preview; }
     @catch(NSException *exception) { self.mathPreviewLabel.latex=@""; }
